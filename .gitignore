@@ -1,0 +1,6 @@
+bin/*
+out/*
+*.ps
+lex.yy.c
+parse.tab.c
+parse.tab.h
