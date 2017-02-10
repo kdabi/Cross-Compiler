@@ -9,7 +9,7 @@ $(OUTPUT)/digraph.gv : $(BIN)/lexer
 	./$(BIN)/lexer $(INPUT)/test1.c
 
 $(BIN)/lexer : parse.tab.c lex.yy.c
-	g++ parse.tab.c lex.yy.c $(SOURCE)/nodes.cpp -o $(BIN)/lexer -I $(SOURCE)
+	g++ -w parse.tab.c lex.yy.c $(SOURCE)/nodes.cpp -o $(BIN)/lexer -I $(SOURCE)
 
 parse.tab.c : 
 	bison -d $(SOURCE)/parse.y

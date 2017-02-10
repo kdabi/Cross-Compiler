@@ -1,9 +1,14 @@
 %{
 #include <stdlib.h>
 #include <stdio.h>
-#include "./src/nodes.h"
+#include "nodes.h"
 #include "parse.tab.h"
 void yyerror (char *);
+extern int sym_type(const char *);
+#define sym_type(identifier) IDENTIFIER
+static int returnType(void);
+static void startComment(void);
+
 %}
 %e 1019
 %p 2807
@@ -27,6 +32,8 @@ SP  (u8|u|U|L)
 ES  (\\(['\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+))
 WS  [ \t\v\n\f]
 %%
+"/*"                    {startComment();/*consuming all the characters of comment */}
+"//".*                  {/* Consume the comment */}
 
 "auto"					{ yylval.str=strdup(yytext); return(AUTO); }
 "break"					{ yylval.str=strdup(yytext);return(BREAK); }
@@ -72,32 +79,109 @@ WS  [ \t\v\n\f]
 "_Noreturn"                             { yylval.str=strdup(yytext);return NORETURN; }
 "_Static_assert"                        { yylval.str=strdup(yytext);return STATIC_ASSERT; }
 "_Thread_local"                         { yylval.str=strdup(yytext);return THREAD_LOCAL; }
-"__func__"                              { yylval.str=strdup(yytext);return FUNCTION_NAME; }
+"__func__"                              { yylval.str=strdup(yytext);return FUNC_NAME; }
 
-{NZ}{D}*      { 
- 			  yylval.str = strdup(yytext);
-			  return INTEGER;
-			} 
 
-"*"        {
-			yylval.str = strdup(yytext);
-			 return '*';
-		   }
-"+"        {
- 				yylval.str = strdup(yytext);
- 				 return '+'; 
- 			} 
-"-"        {
-			yylval.str = strdup(yytext);
-			 return '-'; 
-			}
-"/"        {
-			yylval.str = strdup(yytext);
-			 return '/'; 
-			 	 	}
+{L}{A}*                                 { return returnType(); }
+
+{HP}{H}+{IS}?                           {yylval.str=strdup(yytext); return I_CONSTANT;}
+{NZ}{D}*{IS}?                           {yylval.str=strdup(yytext); return I_CONSTANT;}
+"0"{O}*{IS}?                            {yylval.str=strdup(yytext); return I_CONSTANT;}
+{CP}?"'"([^'\\\n]|{ES})+"'"             {yylval.str=strdup(yytext); return I_CONSTANT;}
+
+{D}+{E}{FS}?                            {yylval.str=strdup(yytext); return F_CONSTANT;}
+{D}*"."{D}+{E}?{FS}?                    {yylval.str=strdup(yytext); return F_CONSTANT;}
+{D}+"."{E}?{FS}?                        {yylval.str=strdup(yytext); return F_CONSTANT;}
+{HP}{H}+{P}{FS}?                        {yylval.str=strdup(yytext); return F_CONSTANT;}
+{HP}{H}*"."{H}+{P}{FS}?                 {yylval.str=strdup(yytext); return F_CONSTANT;}
+{HP}{H}+"."{P}{FS}?                     {yylval.str=strdup(yytext); return F_CONSTANT;} 
+
+({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+       {yylval.str=strdup(yytext); return STRING_LITERAL;}  
+
+"..."					{ yylval.str=strdup(yytext);return ELLIPSIS; }
+">>="					{ yylval.str=strdup(yytext);return RIGHT_ASSIGN; }
+"<<="					{ yylval.str=strdup(yytext);return LEFT_ASSIGN; }
+"+="					{ yylval.str=strdup(yytext);return ADD_ASSIGN; }
+"-="					{ yylval.str=strdup(yytext);return SUB_ASSIGN; }
+"*="					{ yylval.str=strdup(yytext);return MUL_ASSIGN; }
+"/="					{ yylval.str=strdup(yytext);return DIV_ASSIGN; }
+"%="					{ yylval.str=strdup(yytext);return MOD_ASSIGN; }
+"&="					{ yylval.str=strdup(yytext);return AND_ASSIGN; }
+"^="					{ yylval.str=strdup(yytext);return XOR_ASSIGN; }
+"|="					{ yylval.str=strdup(yytext);return OR_ASSIGN; }
+">>"					{ yylval.str=strdup(yytext);return RIGHT_OP; }
+"<<"					{ yylval.str=strdup(yytext);return LEFT_OP; }
+"++"					{ yylval.str=strdup(yytext);return INC_OP; }
+"--"					{ yylval.str=strdup(yytext);return DEC_OP; }
+"->"					{ yylval.str=strdup(yytext);return PTR_OP; }
+"&&"					{ yylval.str=strdup(yytext);return AND_OP; }
+"||"					{ yylval.str=strdup(yytext);return OR_OP; }
+"<="					{ yylval.str=strdup(yytext);return LE_OP; }
+">="					{ yylval.str=strdup(yytext);return GE_OP; }
+"=="					{ yylval.str=strdup(yytext);return EQ_OP; }
+"!="					{ yylval.str=strdup(yytext);return NE_OP; }
+";"					    { yylval.str=strdup(yytext);return ';'; }
+("{"|"<%")				{ yylval.str=strdup(yytext);return '{'; }
+("}"|"%>")				{ yylval.str=strdup(yytext);return '}'; }
+","					{ yylval.str=strdup(yytext);return ','; }
+":"					{ yylval.str=strdup(yytext);return ':'; }
+"="					{ yylval.str=strdup(yytext);return '='; }
+"("					{ yylval.str=strdup(yytext);return '('; }
+")"					{ yylval.str=strdup(yytext);return ')'; }
+("["|"<:")				{ yylval.str=strdup(yytext);return '['; }
+("]"|":>")				{ yylval.str=strdup(yytext);return ']'; }
+"."					{ yylval.str=strdup(yytext);return '.'; }
+"&"					{ yylval.str=strdup(yytext);return '&'; }
+"!"					{ yylval.str=strdup(yytext);return '!'; }
+"~"					{ yylval.str=strdup(yytext);return '~'; }
+"-"					{ yylval.str=strdup(yytext);return '-'; }
+"+"					{ yylval.str=strdup(yytext);return '+'; }
+"*"					{ yylval.str=strdup(yytext);return '*'; }
+"/"					{ yylval.str=strdup(yytext);return '/'; }
+"%"					{ yylval.str=strdup(yytext);return '%'; }
+"<"					{ yylval.str=strdup(yytext);return '<'; }
+">"					{ yylval.str=strdup(yytext);return '>'; }
+"^"					{ yylval.str=strdup(yytext);return '^'; }
+"|"					{ yylval.str=strdup(yytext);return '|'; }
+"?"					{ yylval.str=strdup(yytext);return '?'; }
+
 
 %%
 
 int yywrap(void) {
   return 1;
+}
+static void startComment(void)
+{
+    int a;
+
+    while ((a = getchar()) != 0)
+    {
+    	if (a == '*')
+        {
+            while ((a = getchar()) == '*')
+                ;
+
+            if (a == '/')
+                return;
+
+            if (a == 0)
+                break;
+        }
+    }
+        
+    yyerror("unterminated comment");
+}
+static int returnType(void)
+{   
+	yylval.str = strdup(yytext);
+	switch (sym_type(yytext))
+	{
+		case TYPEDEF_NAME:                     /* previoulsy defined */
+		    return TYPEDEF_NAME;
+		case ENUMERATION_CONSTANT:             /* previoulsy defined */ 
+		    return ENUMERATION_CONSTANT;
+		default:
+		    return IDENTIFIER;        
+	}
 }
