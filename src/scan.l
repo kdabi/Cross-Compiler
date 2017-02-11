@@ -9,14 +9,13 @@ extern int sym_type(const char *);
 #define sym_type(identifier) IDENTIFIER
 static int returnType(void);
 static void startComment(void);
-static int line_num =1;
-
 %}
 %e 1019
 %p 2807
 %n 371
 %a 1213
 %o 1117
+%option yylineno
 
 O   [0-7]
 D   [0-9]
@@ -98,7 +97,7 @@ WS  [ \t\v\n\f]
 {HP}{H}*"."{H}+{P}{FS}?                 {yylval.str=strdup(yytext); return F_CONSTANT;}
 {HP}{H}+"."{P}{FS}?                     {yylval.str=strdup(yytext); return F_CONSTANT;} 
 
-({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+       {yylval.str=strdup(yytext); return STRING_LITERAL;}  
+({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+       {yylval.str=strdup(yytext); return STRING_LITERAL;} 
 
 "..."					{ yylval.str=strdup(yytext);return ELLIPSIS; }
 ">>="					{ yylval.str=strdup(yytext);return RIGHT_ASSIGN; }
@@ -122,7 +121,7 @@ WS  [ \t\v\n\f]
 ">="					{ yylval.str=strdup(yytext);return GE_OP; }
 "=="					{ yylval.str=strdup(yytext);return EQ_OP; }
 "!="					{ yylval.str=strdup(yytext);return NE_OP; }
-";"					    { yylval.str=strdup(yytext);return ';'; }
+";"					{ yylval.str=strdup(yytext);return ';'; }
 ("{"|"<%")				{ yylval.str=strdup(yytext);return '{'; }
 ("}"|"%>")				{ yylval.str=strdup(yytext);return '}'; }
 ","					{ yylval.str=strdup(yytext);return ','; }
@@ -146,8 +145,11 @@ WS  [ \t\v\n\f]
 "^"					{ yylval.str=strdup(yytext);return '^'; }
 "|"					{ yylval.str=strdup(yytext);return '|'; }
 "?"					{ yylval.str=strdup(yytext);return '?'; }
-
-
+\n                                    {}
+" "                                        {}
+{WS}                                       {}
+.                                  {yyerror("Undefined pattern");}
+({SP}?\"([^"\\\n]|{ES})*)        { yyerror("Incomplete String");} 
 %%
 
 int yywrap(void) {

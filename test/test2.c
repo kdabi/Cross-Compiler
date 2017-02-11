@@ -1,17 +1,6 @@
-/*
-int main() {
-  char lakshay[] = "awesome";
-  return 0;
-}*/
-
-struct s {
-  int i;
-  char c;
-};
 
 int main() {
-  struct s * str;
-  s->i = 1;
-  s->c = 'l';
+  char a[] = "awesome";
   return 0;
 }
+
