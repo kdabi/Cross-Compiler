@@ -1,5 +1,6 @@
 #include <string>
 #include <iostream>
+#include <sstream>
 #include "nodes.h"
 #include <stdio.h>
 using namespace std;
@@ -105,6 +106,19 @@ node *terminal(char *str) {
   node *n = new node;
   n->name=str;
   n->id = getNodeId();
+  // checking '\n' character
+  // the loop run til len because the last character is ""
+  stringstream ss;
+  for(int i=0; i < n->name.size(); ++i){
+    if(n->name[i]=='\\' && (n->name[i+1]=='n' || n->name[i+1]=='t')){
+      char tmp = '\\';
+      ss << tmp;
+    }
+    ss << n->name[i];
+  }
+  n->name = ss.str();
+
+  // printing sting token
   if(str[0] == '"'){
     n->name = n->name.substr(1, n->name.size()-2);
     fprintf(digraph, "\t%lu [label=\"\\\"%s\\\"\"];\n", n->id,n->name.c_str() );
