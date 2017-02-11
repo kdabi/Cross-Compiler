@@ -110,7 +110,7 @@ node *terminal(char *str) {
   // the loop run til len because the last character is ""
   stringstream ss;
   for(int i=0; i < n->name.size(); ++i){
-    if(n->name[i]=='\\' && (n->name[i+1]=='n' || n->name[i+1]=='t')){
+    if(n->name[i]=='\\'){
       char tmp = '\\';
       ss << tmp;
     }

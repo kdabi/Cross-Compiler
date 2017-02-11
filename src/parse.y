@@ -1,6 +1,6 @@
 %{
 #include <iostream>
-#include <string>
+#include <cstring>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -878,10 +878,57 @@ declaration_list
 	;
 
 %%
+
+void helpMessage(){
+  printf("Specify an input file with -i flag\n");
+  printf("Specify an output file with -o flag\n");
+  return;
+}
+
 extern FILE *yyin;
 int main(int argc,char **argv){
-  yyin =fopen(argv[1],"r");
-  digraph =fopen("out/digraph.gv","w");
+  if(argc==1){
+    helpMessage();
+    return 0;
+  }
+  yyin=NULL;
+  int fileflag = 0;
+  // command line options
+  int argCount;
+  for(argc--, argv++; argc>0; argc-=argCount, argv += argCount){
+    argCount = 1;
+    if(!strcmp(*argv, "-h")){
+      helpMessage();
+      return 0;
+    }
+    else if(!strcmp(*argv, "-o")){
+      if (argc > 1)
+      digraph =fopen(*(argv+1),"w");
+      else {
+        helpMessage();
+        return 0;
+      }
+    }
+    else if(!strcmp(*argv, "-i")){
+      if (argc > 1){
+        yyin =fopen(*(argv+1),"r");
+        fileflag = 1;
+      }
+      else {
+        helpMessage();
+        return 0;
+      }
+    }
+
+  }
+  if(yyin == NULL) {
+    helpMessage();
+    return 0;
+  }
+  // default output file
+  if(fileflag)
+  digraph =fopen("digraph.gv","w");
+
   graphInitialization();
   yyparse();
   graphEnd();

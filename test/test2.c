@@ -1,9 +1,17 @@
+/*
 int main() {
-    int a = 10;
-    int b = 10;
-    int c = a + b;
-    int d = c + b;
-    printf("HELLO\n");
-    printf("%d", c);
-    return 0;
+  char lakshay[] = "awesome";
+  return 0;
+}*/
+
+struct s {
+  int i;
+  char c;
+};
+
+int main() {
+  struct s * str;
+  s->i = 1;
+  s->c = 'l';
+  return 0;
 }
