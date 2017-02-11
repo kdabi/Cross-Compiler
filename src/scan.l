@@ -1,6 +1,7 @@
 %{
 #include <stdlib.h>
 #include <stdio.h>
+#include <iostream>
 #include "nodes.h"
 #include "parse.tab.h"
 void yyerror (char *);
@@ -8,6 +9,7 @@ extern int sym_type(const char *);
 #define sym_type(identifier) IDENTIFIER
 static int returnType(void);
 static void startComment(void);
+static int line_num =1;
 
 %}
 %e 1019
@@ -153,23 +155,21 @@ int yywrap(void) {
 }
 static void startComment(void)
 {
-    int a;
+    int c;
 
-    while ((a = getchar()) != 0)
-    {
-    	if (a == '*')
+    while ((c = yyinput()) != EOF){
+        if (c == '*')
         {
-            while ((a = getchar()) == '*')
-                ;
+            while ((c = yyinput()) == '*') ;
 
-            if (a == '/')
+
+            if (c == '/')
                 return;
 
-            if (a == 0)
+            if (c == -1)
                 break;
         }
     }
-        
     yyerror("unterminated comment");
 }
 static int returnType(void)
