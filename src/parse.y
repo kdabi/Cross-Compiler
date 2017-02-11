@@ -930,7 +930,7 @@ int main(int argc,char **argv){
     return 0;
   }
   // default output file
-  if(fileflag)
+  if(fileflag == 0)
   digraph =fopen("digraph.gv","w");
 
   graphInitialization();
