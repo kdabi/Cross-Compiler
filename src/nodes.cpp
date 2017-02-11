@@ -105,7 +105,13 @@ node *terminal(char *str) {
   node *n = new node;
   n->name=str;
   n->id = getNodeId();
-  fprintf(digraph, "\t%lu [label=\"%s\"];\n", n->id,n->name.c_str() );
+  if(str[0] == '"'){
+    n->name = n->name.substr(1, n->name.size()-2);
+    fprintf(digraph, "\t%lu [label=\"\\\"%s\\\"\"];\n", n->id,n->name.c_str() );
+  }
+  else{
+    fprintf(digraph, "\t%lu [label=\"%s\"];\n", n->id,n->name.c_str() );
+  }
   return n;
 }
 
