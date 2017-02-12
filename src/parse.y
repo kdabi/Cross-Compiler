@@ -906,8 +906,10 @@ int main(int argc,char **argv){
       return 0;
     }
     else if(!strcmp(*argv, "-o")){
-      if (argc > 1)
-      digraph =fopen(*(argv+1),"w");
+      if (argc > 1){
+        digraph =fopen(*(argv+1),"w");
+        fileflag = 1;
+      }
       else {
         helpMessage();
         return 0;
@@ -917,7 +919,6 @@ int main(int argc,char **argv){
       if (argc > 1){
         yyin =fopen(*(argv+1),"r");
         strncpy(filename,*(argv+1),1024);
-        fileflag = 1;
       }
       else {
         helpMessage();
