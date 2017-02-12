@@ -1,9 +1,9 @@
 %{
 #include <iostream>
-#include <string>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <fcntl.h>
 using namespace std;
 
 int yylex(void);
@@ -11,6 +11,8 @@ void yyerror(char *s);
 #include "nodes.h"
 FILE *digraph;
 node *temp,*temp1,*temp2;
+char filename[1000];
+extern int yylineno;
 %}
 
 
@@ -53,7 +55,7 @@ node *temp,*temp1,*temp2;
 %type <ptr> struct_declaration specifier_qualifier_list struct_declarator_list struct_declarator enumerator_list enumerator enumerator_constant pointer
 %type <ptr> direct_declarator type_qualifier_list parameter_type_list identifier_list parameter_list parameter_declaration  
 %type <ptr> abstract_declarator direct_abstract_declarator designation designator_list designator labeled_statement compound_statement expression_statement declaration_list
-%type <ptr> selection_statement iteration_statement jump_statement block_item_list block_item external_declaration translation_unit function_definition statement
+%type <ptr> selection_statement iteration_statement jump_statement block_item_list block_item external_declaration translation_unit function_definition statement jump_statement_error
 %%
 
 primary_expression
@@ -786,6 +788,7 @@ block_item
 
 expression_statement
 	: ';' {$$ = nonTerminal("expression_statement", $1, NULL, NULL);}
+
 	| expression ';' {$$ = nonTerminal("expression_statement",$2, $1, NULL);}
 	;
 
@@ -880,13 +883,15 @@ declaration_list
 %%
 extern FILE *yyin;
 int main(int argc,char **argv){
+  strncpy(filename,argv[1],1024);
   yyin =fopen(argv[1],"r");
   digraph =fopen("out/digraph.gv","w");
   graphInitialization();
   yyparse();
+  
   graphEnd();
   return 0;
 }
 void yyerror(char *str){
-  fprintf(stderr,"error:%s\n",str);
+  fprintf(stderr,"In %s at line no. %d :%s\n",filename,yylineno,str);
 }
