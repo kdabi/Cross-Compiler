@@ -5,3 +5,4 @@ lex.yy.c
 parse.tab.c
 parse.tab.h
 *.gv
+errors
