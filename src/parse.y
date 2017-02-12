@@ -10,6 +10,7 @@ int yylex(void);
 void yyerror(char *s);
 #include "nodes.h"
 FILE *digraph;
+FILE *duplicate;
 node *temp,*temp1,*temp2;
 char filename[1000];
 extern int yylineno;
@@ -929,6 +930,14 @@ int main(int argc,char **argv){
     helpMessage();
     return 0;
   }
+  char ch;
+  duplicate = fopen("duplicate.txt","w");
+  while( ( ch = fgetc(yyin) ) != EOF ){
+        fputc(ch, duplicate);
+  }
+  fclose(duplicate);
+  fclose(yyin);
+  yyin=fopen(filename,"r"); 
   // default output file
   if(fileflag == 0)
   digraph =fopen("digraph.gv","w");
@@ -940,5 +949,31 @@ int main(int argc,char **argv){
   return 0;
 }
 void yyerror(char *str){
+  
+  int count = 1;
+  if(str=="syntax error") count = 2;
   fprintf(stderr,"In %s at line no. %d :%s\n",filename,yylineno,str);
+  duplicate=fopen("duplicate.txt","r");
+  if ( duplicate != NULL )
+  {
+    char line[256]; /* or other suitable maximum line size */
+    while (fgets(line, sizeof line, duplicate) != NULL) /* read a line */
+    {
+        if (count == yylineno)
+        {
+            fprintf(stderr,"\t%s\n",line);
+            break;
+        }
+        else
+        {
+            count++;
+        }
+    }
+    fclose(duplicate);
+}
+else
+{
+    //file doesn't exist
+}
+  
 }

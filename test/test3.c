@@ -1,11 +1,11 @@
-struct s {
-  int i;
-  char c;
-};
-
+static int f=0;
+void f(int k){
+	return;
+}
 int main() {
-  struct s * str;
-  s->i = 1;
-  s->c = 'l';
+  int l;
+  for(l=0;l<10;l++){
+      printf("%d",l); 
+  }
   return 0;
 }
