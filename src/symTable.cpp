@@ -32,19 +32,30 @@ void insertSymbol(symTable& table,string key,string type,void *value,ull size,ll
    return;
 }
 
-void printStruct(sEntry *a){
-    cout << a->type << " ";
-
+void fprintStruct(sEntry *a, FILE* file){
+    cout << a->type << " " << "";
+   cout << "yyyyy" << " " << file << endl;
+    //FILE * file = fopen (filename.c_str(), "w");
+    fprintf(file, "%s,",a->type.c_str());
+//    cout << "yoyo" << " " << " mai print krunga" << endl;
     switch(switchItem[a->type]){
         case 1:{ string* tmp = (string  *)(a->value);
                  cout << *tmp << endl;
+                 fprintf(file, "%s, %lld,%lld \n", (*tmp).c_str(), a->size, a->offset);
                  break;
                }
         case 2:{ int* tmp = (int  *)(a->value);
+                 fprintf(file, "%d, %lld,%lld \n", *tmp, a->size, a->offset);
                  cout << *tmp << endl;
                  break;
                 }
+        case 3:{
+                 fprintf(file, "This is a function,");
+                 fprintf(file, "%lld, %lld\n", a->size, a->offset);
+
+               }
     } //cout << (int)switchitem[a->type] << endl;
+ //   cout << "yoyo" << " " << " maine print kra" << endl;
 
 }
 
@@ -71,5 +82,22 @@ sEntry* lookup(string a){
       else break;
    }
    return NULL;
+}
+
+void printSymTables(symTable* a, string filename) {
+  FILE* file = fopen(filename.c_str(), "w");
+  for(auto it: *a ){
+//    cout << it.first.c_str()  << "filefilefile " << it.second->type<< endl;
+    if (it.second->type.compare("func")==0){
+ //     cout << "I am inside" << endl;
+       filename = it.first+ ".csv";
+     // FILE *f1 = fopen (filename.c_str(), "w");
+      printSymTables(((symTable*)it.second->value), filename );
+      //fclose(f1);
+    }
+    fprintf(file, "%s,", it.first.c_str());
+    fprintStruct(it.second, file);    
+  }
+  fclose(file);
 }
 

@@ -14,8 +14,8 @@ typedef unsigned long long ull;
 typedef struct sTableEntry{
     string type;
     void *value;
-    unsigned long long size;
-    long long offset;
+    ull size;
+    ll offset;
 } sEntry;
 typedef unordered_map<string,sEntry *> symTable;
 
@@ -27,11 +27,12 @@ extern symTable *curr;
 
 
 void switchItemMap();
-void printStruct(sEntry *a);
+void fprintStruct(sEntry *a, FILE *file);
 void stInitialize();
 void makeSymTable(string name);
 void updateSymTable();
 sEntry* lookup(string a);
 sEntry* makeEntry(string type,void *value, ull size, ll offset);
 void insertSymbol(symTable& table,string key,string type,void *value,ull size,ll offset);
+void printSymTables(symTable *a, string filename);
 #endif
