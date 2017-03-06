@@ -1,4 +1,8 @@
 #include <string>
+#include <iostream>
+#include <sstream>
+#include <stdio.h>
+
 using namespace std;
 
 typedef struct {

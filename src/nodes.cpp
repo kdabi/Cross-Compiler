@@ -1,9 +1,4 @@
-#include <string>
-#include <iostream>
-#include <sstream>
 #include "nodes.h"
-#include <stdio.h>
-using namespace std;
 
 extern FILE *digraph;
 
