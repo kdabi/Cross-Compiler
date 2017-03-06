@@ -60,7 +60,7 @@ extern int yylineno;
 %%
 
 primary_expression
-  : IDENTIFIER                    {$$=terminal($1);$$=nonTerminal("IDENTIFIER",NULL,$$,NULL);$$=nonTerminal("primary_expression",NULL,$$,NULL);}
+  : IDENTIFIER                    {temp=terminal($1);temp1=nonTerminal("IDENTIFIER",NULL,temp,NULL);$$=nonTerminal("primary_expression",NULL,temp1,NULL);}
   | constant                      {$$=nonTerminal("primary_exprssion",NULL,$1,NULL); }
   | string                        {$$=nonTerminal("primary_exprssion",NULL,$1,NULL); }
   | '(' expression ')'            {$$=nonTerminal("primary_exprssion",NULL,$2,NULL); }
@@ -68,21 +68,21 @@ primary_expression
   ;
 
 constant
-  : I_CONSTANT                    {$$=terminal($1);$$=nonTerminal("I_CONSTANT",NULL,$$,NULL);$$=nonTerminal("constant",NULL,$$,NULL);}
-  | F_CONSTANT                    {$$=terminal($1);$$=nonTerminal("F_CONSTANT",NULL,$$,NULL);$$=nonTerminal("constant",NULL,$$,NULL);}
-  | ENUMERATION_CONSTANT           {$$=terminal($1);$$=nonTerminal("ENUMERATION_CONSTANT",NULL,$$,NULL);$$=nonTerminal("constant",NULL,$$,NULL);}
+  : I_CONSTANT                    {temp=terminal($1);temp1=nonTerminal("I_CONSTANT",NULL,temp,NULL);$$=nonTerminal("constant",NULL,temp1,NULL);}
+  | F_CONSTANT                    {temp=terminal($1);temp1=nonTerminal("F_CONSTANT",NULL,temp,NULL);$$=nonTerminal("constant",NULL,temp1,NULL);}
+  | ENUMERATION_CONSTANT           {temp=terminal($1);temp1=nonTerminal("ENUMERATION_CONSTANT",NULL,temp,NULL);$$=nonTerminal("constant",NULL,temp1,NULL);}
   ;
 enumeration_constant    /* before it has been defined as such */
-  : IDENTIFIER                    {$$=terminal($1);$$=nonTerminal("IDENTIFIER",NULL,$$,NULL);$$=nonTerminal("enumeration_constant",NULL,$$,NULL);}
+  : IDENTIFIER                    {temp=terminal($1);temp1=nonTerminal("IDENTIFIER",NULL,temp,NULL);$$=nonTerminal("enumeration_constant",NULL,temp1,NULL);}
   ;
 
 string
-  : STRING_LITERAL                {$$=terminal($1);$$=nonTerminal("STRING_LITERAL",NULL,$$,NULL);$$=nonTerminal("string",NULL,$$,NULL);}
+  : STRING_LITERAL                {temp=terminal($1);temp=nonTerminal("STRING_LITERAL",NULL,temp,NULL);$$=nonTerminal("string",NULL,temp,NULL);}
   | FUNC_NAME                     {temp=nonTerminal("FUNC_NAME",$1,NULL,NULL);  $$=nonTerminal("string",NULL,temp,NULL);}
   ;
 
 generic_selection
-  : GENERIC '(' assignment_expression ',' generic_assoc_list ')' {$$=terminal($1);$$=nonTerminal("GENERIC",NULL,$$,NULL);$$=nonTerminal2("generic_selection",$$,$3,$5);}
+  : GENERIC '(' assignment_expression ',' generic_assoc_list ')' {temp=terminal($1);temp1=nonTerminal("GENERIC",NULL,temp,NULL);$$=nonTerminal2("generic_selection",temp1,$3,$5);}
   ;
 generic_assoc_list
   : generic_association                        {$$=nonTerminal("generic_assoc_list",NULL,$1,NULL);}
@@ -91,7 +91,7 @@ generic_assoc_list
 
 generic_association
   : type_name ':' assignment_expression      {$$ = nonTerminal2("generic_association", $1, $3, NULL);}
-  | DEFAULT ':' assignment_expression        {$$ = terminal("DEFAULT"); $$ = nonTerminal2("generic_association", $$, $3, NULL);} 
+  | DEFAULT ':' assignment_expression        {temp = terminal("DEFAULT"); $$ = nonTerminal2("generic_association", temp, $3, NULL);} 
   ;
  
 postfix_expression
@@ -107,8 +107,8 @@ postfix_expression
                                                 temp=terminal($2);
                                                 temp=nonTerminal("PTR_OP",NULL,temp,NULL);
                                                 temp1=terminal($3);
-                                                $$=nonTerminal("IDENTIFIER",NULL,temp1,NULL);
-                                                $$ = nonTerminal2("postfix_expression", $1, temp, temp1);
+                                                temp2=nonTerminal("IDENTIFIER",NULL,temp1,NULL);
+                                                $$ = nonTerminal2("postfix_expression", $1, temp, temp2);
                                             }
   | postfix_expression INC_OP               {
                                                 temp=terminal($2);
