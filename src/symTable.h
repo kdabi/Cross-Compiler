@@ -24,7 +24,7 @@ extern map<string ,int> switchItem;
 
 extern symTable GST;
 extern symTable *curr;
-extern string keyword;
+extern string oper;
 
 
 void switchItemMap();
