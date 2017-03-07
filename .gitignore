@@ -6,3 +6,8 @@ parse.tab.c
 parse.tab.h
 *.gv
 errors
+tag.txt
+src/symTable2.cpp
+src/practice.cpp
+src/a.out
+
