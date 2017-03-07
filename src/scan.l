@@ -4,6 +4,7 @@
 #include <iostream>
 #include "nodes.h"
 #include "parse.tab.h"
+#include "symTable.h"
 void yyerror (char *);
 extern int sym_type(const char *);
 #define sym_type(identifier) IDENTIFIER

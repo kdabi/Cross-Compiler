@@ -9,11 +9,13 @@ using namespace std;
 int yylex(void);
 void yyerror(char *s);
 #include "nodes.h"
+#include "symTable.h"
 FILE *digraph;
 FILE *duplicate;
 node *temp,*temp1,*temp2;
 char filename[1000];
 extern int yylineno;
+string symFileName;
 %}
 
 
@@ -943,10 +945,13 @@ int main(int argc,char **argv){
   if(fileflag == 0)
   digraph =fopen("digraph.gv","w");
 
+  stInitialize();
   graphInitialization();
   yyparse();
   
   graphEnd();
+  symFileName = "GST.csv";
+  printSymTables(curr,symFileName);
   return 0;
 }
 void yyerror(char *str){

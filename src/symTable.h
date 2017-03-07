@@ -24,11 +24,13 @@ extern map<string ,int> switchItem;
 
 extern symTable GST;
 extern symTable *curr;
+extern string keyword;
 
 
 void switchItemMap();
 void fprintStruct(sEntry *a, FILE *file);
 void stInitialize();
+void addKeywords();
 void makeSymTable(string name);
 void updateSymTable();
 sEntry* lookup(string a);
