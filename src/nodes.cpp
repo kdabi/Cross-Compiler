@@ -55,6 +55,36 @@ node *nonTerminal1(char *str,char *op1, node *l,char *op2) {
   if(op2) fprintf(digraph, "\t%lu -> %lu;\n", n->id, op2_id);
   return n;
 }
+node *nonTerminal3(char *str,char *op1,char *op3, node *l,char *op2) {
+  node *n = new node;
+  n->name = str;
+  n->id = getNodeId();
+  int op1_id = getNodeId();
+  char *op1_str = op1;
+  int op3_id = getNodeId();
+  char *op3_str = op3;
+  int op2_id = getNodeId();
+  char *op2_str = op2;
+  if(op1){
+
+    fprintf(digraph, "\t%lu [label=\"%s\"];\n", op1_id, op1_str);
+  }
+  if(op3){
+
+    fprintf(digraph, "\t%lu [label=\"%s\"];\n", op3_id, op3_str);
+  }
+
+  if(op2){
+
+    fprintf(digraph, "\t%lu [label=\"%s\"];\n", op2_id, op2_str);
+  }
+  fprintf(digraph, "\t%lu [label=\"%s\"];\n", n->id, n->name.c_str());
+  if(op1) fprintf(digraph, "\t%lu -> %lu;\n", n->id, op1_id);
+  if(op3) fprintf(digraph, "\t%lu -> %lu;\n", n->id, op3_id);
+  if(l)fprintf(digraph, "\t%lu -> %lu;\n", n->id, l->id);
+  if(op2) fprintf(digraph, "\t%lu -> %lu;\n", n->id, op2_id);
+  return n;
+}
 node *nonTerminal2(char *str,node *l,node *m, node *r) {
   node *n = new node;
   n->name = str;

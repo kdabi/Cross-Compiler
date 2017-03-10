@@ -13,4 +13,4 @@ lex.yy.c :
 
 clean : 
 	rm -f $(BIN)/lexer  parse.tab.c lex.yy.c \
-	  parse.tab.h
+	  parse.tab.h GST.csv
