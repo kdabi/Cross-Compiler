@@ -3,7 +3,8 @@
 
 void main()
 {
-  int i, j, a, n, number[30];
+  int i=1, j, a, n, number[30];
+  char c;
 
   printf("Enter the value of N \n");
   scanf("%d", &n);

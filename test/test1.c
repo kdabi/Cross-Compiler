@@ -19,7 +19,7 @@ int isSubstrOdd(char *a, char* b, int lengthA, int lengthB){
   }
   else {
     if (*a==*b) return isSubstrOdd(a+1, b+1, lengthA-1, lengthB-1);
-    else /*  */ return isSubstrOdd(a+1, b  , lengthA-1, lengthB  );
+    else  return isSubstrOdd(a+1, b  , lengthA-1, lengthB  );
   } 
 }
 
@@ -50,4 +50,4 @@ int main(){
     }
   }
   return 0;
-}
+} 

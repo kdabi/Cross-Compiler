@@ -5,7 +5,9 @@
 #include "nodes.h"
 #include "parse.tab.h"
 #include "symTable.h"
-void yyerror (char *);
+void yyerror (char *,...);
+void get_int_info();
+void get_real_info();
 extern int sym_type(const char *);
 #define sym_type(identifier) IDENTIFIER
 static int returnType(void);
@@ -86,17 +88,18 @@ WS  [ \t\v\n\f]
 
 {L}{A}*                                 { return returnType(); }
 
-{HP}{H}+{IS}?                           {yylval.str=strdup(yytext); return I_CONSTANT;}
-{NZ}{D}*{IS}?                           {yylval.str=strdup(yytext); return I_CONSTANT;}
-"0"{O}*{IS}?                            {yylval.str=strdup(yytext); return I_CONSTANT;}
-{CP}?"'"([^'\\\n]|{ES})+"'"             {yylval.str=strdup(yytext); return I_CONSTANT;}
+{HP}{H}+{IS}?                           {sscanf(yytext+2,"%llx",&yylval.num->iVal);get_int_info();yylval.num->str = strdup(yytext);
+                                        return I_CONSTANT;}
+{NZ}{D}*{IS}?                           {sscanf(yytext,"%lld",&yylval.num->iVal);get_int_info(); yylval.num->str = strdup(yytext);return I_CONSTANT;}
+"0"{O}*{IS}?                            {sscanf(yytext,"%lld",&yylval.num->iVal);get_int_info(); yylval.num->str = strdup(yytext); return I_CONSTANT;}
+{CP}?"'"([^'\\\n]|{ES})+"'"             {get_int_info(); return I_CONSTANT;}
 
-{D}+{E}{FS}?                            {yylval.str=strdup(yytext); return F_CONSTANT;}
-{D}*"."{D}+{E}?{FS}?                    {yylval.str=strdup(yytext); return F_CONSTANT;}
-{D}+"."{E}?{FS}?                        {yylval.str=strdup(yytext); return F_CONSTANT;}
-{HP}{H}+{P}{FS}?                        {yylval.str=strdup(yytext); return F_CONSTANT;}
-{HP}{H}*"."{H}+{P}{FS}?                 {yylval.str=strdup(yytext); return F_CONSTANT;}
-{HP}{H}+"."{P}{FS}?                     {yylval.str=strdup(yytext); return F_CONSTANT;} 
+{D}+{E}{FS}?                            {yylval.num->str = strdup(yytext);get_real_info(); return F_CONSTANT;}
+{D}*"."{D}+{E}?{FS}?                    {yylval.num->str = strdup(yytext);get_real_info(); return F_CONSTANT;}
+{D}+"."{E}?{FS}?                        {yylval.num->str = strdup(yytext);get_real_info(); return F_CONSTANT;}
+{HP}{H}+{P}{FS}?                        {yylval.num->str = strdup(yytext);get_real_info(); return F_CONSTANT;}
+{HP}{H}*"."{H}+{P}{FS}?                 {yylval.num->str = strdup(yytext);get_real_info(); return F_CONSTANT;}
+{HP}{H}+"."{P}{FS}?                     {yylval.num->str = strdup(yytext);get_real_info(); return F_CONSTANT;}
 
 ({SP}?\"([^"\\\n]|{ES})*\"{WS}*)+       {yylval.str=strdup(yytext); return STRING_LITERAL;} 
 
@@ -155,7 +158,37 @@ WS  [ \t\v\n\f]
 
 int yywrap(void) {
   return 1;
+} 
+void get_int_info(){
+   int i;
+   yylval.num->nType = yylval.num->is_unsigned=0;
+   for(i=yyleng-1;;i--){
+       if(yytext[i]=='u'||yytext[i]=='U')
+                yylval.num->is_unsigned =1;
+       else if (yytext[i]=='l'||yytext[i] == 'L')
+                yylval.num->nType++;
+       else
+             break;
+
+   }
+
+
 }
+void get_real_info(){
+   int i=yyleng-1;
+   sscanf(yytext,"Lf",&yylval.num->rVal);
+       if(yytext[i]=='f'||yytext[i]=='F')
+                yylval.num->nType =N_FLOAT;
+       else if (yytext[i]=='l'||yytext[i] == 'L')
+                yylval.num->nType = N_LONGDOUBLE;
+       else
+               yylval.num->nType =N_DOUBLE;
+
+
+
+
+}
+
 static void startComment(void)
 {
     int c;
@@ -176,15 +209,16 @@ static void startComment(void)
     yyerror("unterminated comment");
 }
 static int returnType(void)
-{   
-	yylval.str = strdup(yytext);
-	switch (sym_type(yytext))
-	{
-		case TYPEDEF_NAME:                     /* previoulsy defined */
-		    return TYPEDEF_NAME;
-		case ENUMERATION_CONSTANT:             /* previoulsy defined */ 
-		    return ENUMERATION_CONSTANT;
-		default:
-		    return IDENTIFIER;        
-	}
+{
+ yylval.str = strdup(yytext);
+{       string m =returnSymType(yytext);
+        if(m=="TYPEDEF_NAME")
+             return TYPEDEF_NAME;
+        else if(m=="ENUMERATION_CONSTANT")
+             return ENUMERATION_CONSTANT;
+        else
+            return IDENTIFIER;
+
+}
+   
 }

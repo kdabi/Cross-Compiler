@@ -5,9 +5,10 @@ lex.yy.c
 parse.tab.c
 parse.tab.h
 *.gv
+*.csv
 errors
 tag.txt
 src/symTable2.cpp
 src/practice.cpp
 src/a.out
-
+duplicate.txt
