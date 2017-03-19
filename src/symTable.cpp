@@ -35,7 +35,7 @@ void stInitialize(){
     addKeywords();
 }
 void paramTable(){   
-      makeSymTable(string("Next"),S_FUNC);
+      makeSymTable(string("Next"),S_FUNC,string(""));
       is_next=1;
 }
 
@@ -88,13 +88,15 @@ void fprintStruct(sEntry *a, FILE* file){
 
 }
 
-void makeSymTable(string name,int type){
-  if(is_next==1){ insertSymbol(*tParent[curr],name,"func",0,0,1); 
+void makeSymTable(string name,int type,string funcType){
+  string f ;
+  if(funcType!="12345") f =string("FUNC_")+funcType; else f = string("Block");
+  if(is_next==1){ insertSymbol(*tParent[curr],name,f,0,0,1); 
                   (*tParent[curr]).erase(string("Next"));   
        }
   else {
    symTable* myTable = new symTable;
-    insertSymbol(*curr,name,"func",0,0,1);
+    insertSymbol(*curr,name,f,0,0,1);
     tParent.insert(pair<symTable*, symTable*>(myTable,curr));
     symTable_type.insert(pair<symTable*, int>(myTable,type));
     curr = myTable; }

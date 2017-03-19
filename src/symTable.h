@@ -37,7 +37,7 @@ void switchItemMap();
 void fprintStruct(sEntry *a, FILE *file);
 void stInitialize();
 void addKeywords();
-void makeSymTable(string name,int type);
+void makeSymTable(string name,int type,string funcType);
 //void updateKey(string key,void *val);
 void updateSymTable();
 sEntry* lookup(string a);

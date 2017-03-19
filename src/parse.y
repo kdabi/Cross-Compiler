@@ -24,6 +24,8 @@ char filename[1000];
 string typeName="";
 extern int yylineno;
 string symFileName;
+string funcName;
+string funcType;
 %}
 
 
@@ -552,8 +554,9 @@ declarator
                if($2->exprType==1){$$->nodeType=$2->nodeType+$1->nodeType;
                $$->nodeKey = $2->nodeKey;
                $$->exprType=1;}
+               if($2->exprType==2){ funcName = $2->nodeKey; funcType = $2->nodeType; }
          }
-	| direct_declarator {$$ = $1;}
+	| direct_declarator {$$ = $1;if($1->exprType==2){ funcName=$1->nodeKey; funcType = $1->nodeType; } }
 	;
 
 direct_declarator
@@ -625,9 +628,9 @@ direct_declarator
                             $$->nodeType=$1->nodeType+string("*");}
 
         }
-	| direct_declarator '(' E3 parameter_type_list ')' {$$ = nonTerminal("direct_declarator", NULL, $1, $4);}
-	| direct_declarator '(' E3 ')' {$$ = nonTerminalRoundB("direct_declarator", $1);} 
-	| direct_declarator '(' E3 identifier_list ')' {$$ = nonTerminal("direct_declarator", NULL, $1, $4);}
+	| direct_declarator '(' E3 parameter_type_list ')' {$$ = nonTerminal("direct_declarator", NULL, $1, $4);if($1->exprType==1){ $$->nodeKey=$1->nodeKey; $$->exprType=2;$$->nodeType=$1->nodeType;}         }
+	| direct_declarator '(' E3 ')' {$$ = nonTerminalRoundB("direct_declarator", $1); if($1->exprType==1){ $$->nodeKey=$1->nodeKey;$$->exprType=2;}  $$->nodeType=$1->nodeType;} 
+	| direct_declarator '(' E3 identifier_list ')' {$$ = nonTerminal("direct_declarator", NULL, $1, $4); }
 	;
 
 E3 
@@ -808,9 +811,9 @@ compound_statement
 	;
 E1 
     :  '{'       { if(isFunc==0) {symNumber++;
-                        symFileName = string("symTableFunc")+to_string(funcSym)+string("Block")+to_string(symNumber);
+                        symFileName = /*string("symTableFunc")+to_string(funcSym)*/funcName+string("Block")+to_string(symNumber);
                         scope=S_BLOCK;
-                        makeSymTable(symFileName,scope);
+                        makeSymTable(symFileName,scope,string("12345"));
                         char * y=new char();
                         strcpy(y,symFileName.c_str());
                         $$ = strcat(y,".csv");
@@ -911,8 +914,8 @@ E2
     : %empty                { typeName=string("");scope = S_FUNC;
                                          isFunc = 1;
                                          funcSym++;
-                                         symFileName = string("symTableFunc")+to_string(funcSym);
-                                         makeSymTable(symFileName,scope);
+                                         symFileName = funcName;//string("symTableFunc")+to_string(funcSym);
+                                         makeSymTable(symFileName,scope,funcType);
                                          char* y= new char();
                                          strcpy(y,symFileName.c_str());
                                          $$ = strcat(y,".csv");
@@ -975,6 +978,7 @@ int main(int argc,char **argv){
     return 0;
   }
   char ch;
+  funcName = string("GST");
   duplicate = fopen("duplicate.txt","w");
   while( ( ch = fgetc(yyin) ) != EOF ){
         fputc(ch, duplicate);
