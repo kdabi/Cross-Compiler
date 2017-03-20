@@ -11,7 +11,8 @@ int main() {
    n = term = sum = count = 1;
  
    while (n <= 100) {
-      term = term * x / n;
+
+      term = term *x / n;
       sum = sum + term;
       count = count + 1;
        int u =1;

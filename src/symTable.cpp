@@ -1,5 +1,5 @@
 #include "symTable.h"
-
+map<string , string> funcArgumentMap;
 map<symTable *, symTable*> tParent;
 map<symTable *, int> symTable_type;
 map<string ,int> switchItem;
@@ -133,7 +133,18 @@ void update_isInit(string key){
        temp->is_init =1;
    }
 }
+void insertFuncArguments(string a,string b){
+     funcArgumentMap.insert(pair<string,string>(a,b));
+}
 
+void printFuncArguments(){
+     FILE* file = fopen("FuncArguments.csv","w");
+     for(auto it:funcArgumentMap){
+        fprintf(file,"%s,",it.first.c_str());
+        fprintf(file,"%s\n",it.second.c_str());
+     }
+     fclose(file);     
+}
 void printSymTables(symTable* a, string filename) {
   FILE* file = fopen(filename.c_str(), "w");
   fprintf( file,"Key,Type,Size,Offset,is_Initialized\n");

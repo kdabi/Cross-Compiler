@@ -1,9 +1,11 @@
 // This is the solution to a codechef question
+int pr;
 int isSubstrEven(char *a, char *b, int length){
   int i;
   for( i=0; i<length; i++){
     if(a[i] != b[i])
       return 0;
+     length = 1*2.0;
   }
   return 1;
 }
