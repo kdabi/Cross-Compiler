@@ -17,6 +17,7 @@ int yylex(void);
 void yyerror(char *s,...);
 #include "nodes.h"
 #include "symTable.h"
+#include "typeCheck.h"
 FILE *digraph;
 FILE *duplicate;
 node *temp,*temp1,*temp2;
@@ -79,7 +80,16 @@ string funcType;
 %%
 
 primary_expression
-  : IDENTIFIER                    {$$=terminal($1);}
+  : IDENTIFIER                    {$$=terminal($1);
+				    char* a = primaryExpr($1);
+				    if (a) {string as(a);
+                                         $$->isInit = lookup($1)->is_init;
+                                         $$->nodeType=as;
+                                         string key($1);
+                                         $$->nodeKey = key;
+                                         $$->exprType = 3; }
+				    else yyerror("Error: %s is not declared in this scope", $1);
+				  }
   | constant                      {$$=$1; }
   | string                        {$$=$1; }
   | '(' expression ')'            {$$=$2; }
@@ -87,17 +97,29 @@ primary_expression
   ;
 
 constant
-  : I_CONSTANT                    {$$=terminal($1->str);}
-  | F_CONSTANT                    {$$=terminal($1->str);}
-  | ENUMERATION_CONSTANT           {$$=terminal($1);}
+  : I_CONSTANT                    {$$=terminal($1->str); 
+				   char * a = constant($1->nType);
+                                   $$->isInit=1;
+                                   string as(a);
+				   $$->nodeType=as;			
+				   }
+  | F_CONSTANT                    {$$=terminal($1->str);
+                                   char * a = constant($1->nType);
+                                   $$->isInit =1;
+                                   string as(a);
+                                   $$->nodeType=as;
+                                   }
+  | ENUMERATION_CONSTANT           {$$=terminal($1);
+                              $$->isInit=1;
+                             $$->nodeType=string("ENUMERATION_CONSTANT");}
   ;
 enumeration_constant    /* before it has been defined as such */
   : IDENTIFIER                    {$$=terminal($1);}
   ;
 
 string
-  : STRING_LITERAL                {$$=terminal($1);}
-  | FUNC_NAME                     {$$=terminal($1);}
+  : STRING_LITERAL                {$$=terminal($1); $$->nodeType = string("char*"); $$->isInit =1; }
+  | FUNC_NAME                     {$$=terminal($1); $$->nodeType = string(); $$->isInit=1;}
   ;
 
 generic_selection
@@ -114,10 +136,39 @@ generic_association
   ;
  postfix_expression
   : primary_expression                       {$$ = $1;} 
-  | postfix_expression '[' expression ']'    {$$ = nonTerminal("postfix_expression[experssion]", NULL, $1, $3);
+  | postfix_expression '[' expression ']' 
+   {
+						$$ = nonTerminal("postfix_expression[experssion]", NULL, $1, $3);
+						char* s = postfixExpr($1->nodeType, 1);
+						if(s){string as(s); 
+							$$->nodeType =as;
+						 }
+						else {
+						  yyerror("Error:  array indexed with more indices than its dimension ");
+						}
                                              } 
-  | postfix_expression '(' ')'               {$$ = $1;} 
-  | postfix_expression '(' argument_expression_list ')'   {$$ = nonTerminal("postfix_expression", NULL, $1, $3);} 
+  | postfix_expression '(' ')'               {  $$ = $1;	
+					
+	  char* s = postfixExpr($1->nodeType, 2);
+	  if(s){
+		  string as(s); 
+		  $$->nodeType =as;
+	  }
+	  else {
+		  yyerror("Error: Invalid Function call");
+	  }
+
+  }
+  | postfix_expression '(' argument_expression_list ')'   {$$ = nonTerminal("postfix_expression", NULL, $1, $3);
+	  char* s = postfixExpr($1->nodeType, 3);
+	  if(s){
+		  string as(s); 
+		  $$->nodeType =as;
+	  }
+	  else {
+		  yyerror("Error: Invalid Function call");
+	  }
+} 
   | postfix_expression '.' IDENTIFIER       {
                                                 temp = terminal($3);
                                                 $$ = nonTerminal("postfix_expression.IDENTIFIER",NULL, $1, temp);
@@ -129,47 +180,117 @@ generic_association
                                                 $$ = nonTerminal($2,NULL, $1, temp);
                                             }
   | postfix_expression INC_OP               {
+
                                                $$=  nonTerminal($2, NULL,$1, NULL);
+	  char* s = postfixExpr($1->nodeType, 6);
+	  if(s){
+		  string as(s); 
+		  $$->nodeType =as;
+	  }
+	  else {
+		  yyerror("Error: Increment not defined for this type");
+	  }
+
                                             } 
   | postfix_expression DEC_OP               {
-                                                $$=  nonTerminal($2,NULL, $1,NULL);
-                                            } 
+	  $$=  nonTerminal($2,NULL, $1,NULL);
+	  char* s = postfixExpr($1->nodeType, 7);
+	  if(s){
+		  string as(s); 
+		  $$->nodeType =as;
+	  }
+	  else {
+		  yyerror("Error: Decrement not defined for this type");
+	  }
+
+  } 
   | '(' type_name ')' '{' initializer_list '}' {
-                                                  $$=  nonTerminal("postfix_expression", NULL, $2, $5);
-                                               }
+	  $$=  nonTerminal("postfix_expression", NULL, $2, $5);
+	  char* s = postfixExpr($2->nodeType, 8);
+	  if(s){
+		  string as(s);
+		  $$->nodeType =as;
+	  }
+	  else {
+		  yyerror("Error: typecasting error");
+	  }
+
+  }
   | '(' type_name ')' '{' initializer_list ',' '}' {
-                                                    $$=nonTerminalFourChild("postfix_expression",$2,$5,NULL,NULL,$6);
-                                                   }
+	  $$=nonTerminalFourChild("postfix_expression",$2,$5,NULL,NULL,$6);
+	  char* s = postfixExpr($2->nodeType, 9);
+	  if(s){
+		  string as(s);
+		  $$->nodeType =as;
+	  }
+	  else {
+		  yyerror("Error: typecasting error");
+	  }
+  }
   ;
 
 argument_expression_list
   : assignment_expression            {$$ = $1;} 
-  | argument_expression_list ',' assignment_expression    {$$ = nonTerminal("argument_expression_list",NULL, $1, $3);} 
+  | argument_expression_list ',' assignment_expression    {
+             $$ = nonTerminal("argument_expression_list",NULL, $1, $3);
+	     char* a =  argumentExpr($1->nodeType, $3->nodeType, 2);
+		string as(a);
+		$$->nodeType = as;
+
+              } 
   ;
 
 
 unary_expression
   : postfix_expression            {$$ = $1;} 
   | INC_OP unary_expression       {
-                                      $$=  nonTerminal($1, NULL,NULL, $2); 
-                                   } 
+	  $$=  nonTerminal($1, NULL,NULL, $2); 
+	  char* s = postfixExpr($2->nodeType, 6);
+	  if(s){
+		  string as(s); 
+		  $$->nodeType =as;
+	  }
+	  else {
+		  yyerror("Error: Increment not defined for this type");
+	  }
+
+  } 
 
   | DEC_OP unary_expression       {
-                          $$=  nonTerminal($1, NULL,NULL, $2);
+       	  $$=  nonTerminal($1, NULL,NULL, $2); 
+	  char* s = postfixExpr($2->nodeType, 7);
+	  if(s){
+		  string as(s); 
+		  $$->nodeType =as;
+	  }
+	  else {
+		  yyerror("Error: Decrement not defined for this type");
+	  }
 
-                                   }
-  | unary_operator cast_expression { $$ = nonTerminal("unary_expression", NULL, $1, $2);}
+  }
+  | unary_operator cast_expression { 
+		$$ = nonTerminal("unary_expression", NULL, $1, $2);
+		char* a= unaryExpr($1->name, $2->nodeType, 1);
+		if(a){
+		    string as(a);
+		    $$->nodeType= as;
+		}
+		else{
+		    yyerror("Error: Type inconsistent with operator %s", $1->name.c_str());
+		}
+ 	}
   | SIZEOF unary_expression       {
                                 $$=  nonTerminal($1, NULL,NULL, $2);
+				$$->nodeType = string("int");
 
                                    }
   | SIZEOF '(' type_name ')'   {
                                    $$=  nonTerminal($1, NULL,NULL, $3);
-
+				   $$->nodeType = string("int");
                                    }
   | ALIGNOF '(' type_name ')'   {
-                                 $$=  nonTerminal($1, NULL,NULL, $3);
-
+	  $$=  nonTerminal($1, NULL,NULL, $3);
+	  $$->nodeType = string("int");
                                    }
   ;
 
@@ -184,31 +305,113 @@ unary_operator
       
 cast_expression
         : unary_expression        {$$ = $1;}
-        | '(' type_name ')' cast_expression {$$ = nonTerminal("cast_expression", NULL, $2, $4);}
+        | '(' type_name ')' cast_expression {$$ = nonTerminal("cast_expression", NULL, $2, $4); $$->nodeType = $2->nodeType;}
         ;
 
 multiplicative_expression
         : cast_expression                                     {$$=$1;}
-        | multiplicative_expression '*' cast_expression       {$$=nonTerminal("*",NULL,$1,$3);}
-        | multiplicative_expression '/' cast_expression       {$$=nonTerminal("/",NULL,$1,$3);}
-        | multiplicative_expression '%' cast_expression       {$$=nonTerminal("%",NULL,$1,$3);}
+        | multiplicative_expression '*' cast_expression       {
+            char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '*');
+            if(strcmp(a,"int")==0){
+               $$=nonTerminal("* int",NULL,$1,$3);
+               $$->nodeType = string("long long");
+	    }
+	    else if (strcmp(a, "float")==0){
+               $$=nonTerminal("* float",NULL,$1,$3);
+               $$->nodeType = string("long double");
+            }
+            else{
+                $$=nonTerminal("*",NULL,$1,$3);
+		yyerror("Error: Incompatible type for * operator");
+            }
+        }
+        | multiplicative_expression '/' cast_expression       {
+            char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '/');
+            if(!strcmp(a,"int")){
+               $$=nonTerminal("/ int",NULL,$1,$3);
+               $$->nodeType = string("long long");
+	    }
+	    else if (!strcmp(a,"float")){
+               $$=nonTerminal("/ float",NULL,$1,$3);
+               $$->nodeType = string("long double");
+            }
+            else{
+               $$=nonTerminal("/",NULL,$1,$3);
+		yyerror("Error: Incompatible type for / operator");
+            }
+}
+        | multiplicative_expression '%' cast_expression       {
+            $$=nonTerminal("%",NULL,$1,$3);
+            char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '/');
+            if(a){
+		$$->nodeType= string("long long");
+	    }
+	    else {
+		yyerror("Error: Incompatible type for % operator");
+            }	
+           } 
         ;
 
 additive_expression
         : multiplicative_expression                           {$$=$1;}
-        | additive_expression '+' multiplicative_expression   {$$=nonTerminal("+",NULL,$1,$3);}
-        | additive_expression '-' multiplicative_expression   {$$=nonTerminal("-",NULL,$1,$3);}
+        | additive_expression '+' multiplicative_expression   {
+                char *a = additiveExpr($1->nodeType,$3->nodeType,'+');
+                 char *q=new char();
+                 if(a){string as(a);
+                 string p = string("+ ")+as;
+                 strcpy(q,p.c_str());}
+                 else q = "+";
+                 $$=nonTerminal(q,NULL,$1,$3);
+                 if(a){ string as(a);
+                 if(!strcmp(a,"int")) $$->nodeType=string("long long");
+                 else if(!strcmp(a,"float")) $$->nodeType=string("long double");
+                 else $$->nodeType=as; }
+                 else {
+                       yyerror("Error: Incompatible type for + operator");
+                      } 
+                 }
+        | additive_expression '-' multiplicative_expression   {
+                 char *a = additiveExpr($1->nodeType,$3->nodeType,'-');
+		 char *q = new char();
+		 if(a){ string as(a);
+                         string p =string("- ")+as;
+                         strcpy(q,p.c_str());
+                      }
+		  $$=nonTerminal(q,NULL,$1,$3);
+	          if(a){ string as(a);
+                   if(!strcmp(a,"int")) $$->nodeType=string("long long");
+                   else if(!strcmp(a,"float")) $$->nodeType=string("long double");
+			 else $$->nodeType=as; }
+		 else {
+			 yyerror("Error: Incompatible type for - operator");
+		 }
+
+	}
         ;
 
 
 shift_expression
   : additive_expression     {$$ = $1;}
   | shift_expression LEFT_OP additive_expression {
-                                                    $$ = nonTerminal2("<<", $1,NULL, $3);
-                                                  }
+                          $$ = nonTerminal2("<<", $1,NULL, $3);
+                          char* a = shiftExpr($1->nodeType,$3->nodeType);                        if(a){ 
+                            $$->nodeType = $1->nodeType;
+                           }
+                       else{
+                          yyerror("Error: Invalid operands to binary <<");
+                           }
+                     }
   | shift_expression RIGHT_OP additive_expression {
-                                                    $$ = nonTerminal2(">>", $1, NULL, $3);
-                                                  }
+                              $$ = nonTerminal2(">>", $1, NULL, $3);
+                       char* a = shiftExpr($1->nodeType,$3->nodeType);
+                          if(a){
+                                $$->nodeType = $1->nodeType;
+                               }
+                        else{
+                          yyerror("Error: Invalid operands to binary <<");
+                            }
+
+                       }
   ;
 
 relational_expression
@@ -383,40 +586,52 @@ storage_class_specifier
   ;
 
 type_specifier
-  : VOID     {     typeName = typeName+string(" ")+string($1);
+  : VOID     {     if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }
-  | CHAR     {     typeName = typeName+string(" ")+string($1);
+  | CHAR     {     if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }
-  | SHORT     {    typeName = typeName+string(" ")+string($1);
+  | SHORT     {   if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }
-  | INT       {    typeName = typeName+string(" ")+string($1);
+  | INT       {   if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }
-  | LONG      {    typeName = typeName+string(" ")+string($1);
+  | LONG      {    if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }
-  | FLOAT     {    typeName = typeName+string(" ")+string($1);
+  | FLOAT     {   if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }
-  | DOUBLE    {    typeName = typeName+string(" ")+string($1);
+  | DOUBLE    {    if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }
-  | SIGNED    {    typeName = typeName+string(" ")+string($1);
+  | SIGNED    {    if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }
-  | UNSIGNED  {    typeName = typeName+string(" ")+string($1);
+  | UNSIGNED  {   if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }
-  | BOOL      {    typeName = typeName+string(" ")+string($1);
+  | BOOL      {   if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }
-  | COMPLEX   {    typeName = typeName+string(" ")+string($1);
+  | COMPLEX   {   if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }
-  | IMAGINARY {    typeName = typeName+string(" ")+string($1);
+  | IMAGINARY {   if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
               }   
 
@@ -424,7 +639,8 @@ type_specifier
   | atomic_type_specifier  {$$ = $1;yyerror("Error : Not implemented atomic_type_specifier");}
   | struct_or_union_specifier  {$$ = $1;yyerror("Error : Not implemented struct or union yet");}
   | enum_specifier  {$$ =$1;yyerror("Error : not implemented Enum specifier");}
-  | TYPEDEF_NAME    {  typeName = typeName+string(" ")+string($1);
+  | TYPEDEF_NAME    {  if(typeName==string(""))typeName = string($1);
+                   else typeName = typeName+string(" ")+string($1);
                   $$ = terminal($1);
               }
   ;

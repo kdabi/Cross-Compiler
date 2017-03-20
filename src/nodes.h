@@ -10,6 +10,7 @@ typedef struct {
   long double rVal;
   char *str;
   char cVal;
+  int isInit;
   int exprType;
   string name;
   string nodeType;

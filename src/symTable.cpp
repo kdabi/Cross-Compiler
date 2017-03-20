@@ -127,6 +127,12 @@ void updateKey(string key,void *val){
    }
 }
 */
+void update_isInit(string key){
+   sEntry *temp = lookup(key);
+   if(temp){
+       temp->is_init =1;
+   }
+}
 
 void printSymTables(symTable* a, string filename) {
   FILE* file = fopen(filename.c_str(), "w");
@@ -240,5 +246,10 @@ void addKeywords(){
   {string *oper = new string();  *oper = "^"; insertSymbol(*curr,"^","Operator",0,0,1); } // ^ operator
   {string *oper = new string();  *oper = "|"; insertSymbol(*curr,"|","Operator",0,0,1); } // | operator
   {string *oper = new string();  *oper = "?"; insertSymbol(*curr,"?","Operator",0,0,1); } // ? operator
+
+/////////////// basic printf, scanf, strlen :: to get the code running /////////
+  insertSymbol(*curr,"printf","FUNC_ void",0,0,1); //
+  insertSymbol(*curr,"scanf","FUNC_ void",0,0,1); //
+  insertSymbol(*curr,"strlen","FUNC_ int",0,0,1); //
 
 }

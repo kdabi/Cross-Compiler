@@ -161,7 +161,7 @@ int yywrap(void) {
 } 
 void get_int_info(){
    int i;
-   yylval.num->nType = yylval.num->is_unsigned=0;
+   yylval.num->nType = yylval.num->is_unsigned=1;
    for(i=yyleng-1;;i--){
        if(yytext[i]=='u'||yytext[i]=='U')
                 yylval.num->is_unsigned =1;

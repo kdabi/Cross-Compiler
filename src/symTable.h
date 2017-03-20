@@ -37,6 +37,7 @@ void switchItemMap();
 void fprintStruct(sEntry *a, FILE *file);
 void stInitialize();
 void addKeywords();
+void update_isInit(string key);
 void makeSymTable(string name,int type,string funcType);
 //void updateKey(string key,void *val);
 void updateSymTable();
