@@ -616,8 +616,14 @@ assignment_expression
   : conditional_expression  { $$ = $1;}
   | unary_expression assignment_operator assignment_expression  
              { $$ = nonTerminal2($2, $1,NULL, $3);
-              
-
+               char* a = assignmentExpr($1->nodeType,$3->nodeType,$2);
+               if(a){
+                    if(!strcmp(a,"true")){ $$->nodeType = $1->nodeType; }
+                    if(!strcmp(a,"warning")){ $$->nodeType = $1->nodeType;                         yyerror("Warning: Assignment with incompatible pointer type"); 
+                         }
+                    }
+                else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($3->nodeType).c_str()); }
+     if($1->exprType==3){ if($3->isInit==1) update_isInit($1->nodeKey); } 
              }
   ;
 
@@ -657,7 +663,7 @@ assignment_operator
 
 expression
   : assignment_expression    { $$ = $1;}
-  | expression ',' assignment_expression   { $$ = nonTerminal("expression",NULL, $1, $3);}
+  | expression ',' assignment_expression   { $$ = nonTerminal("expression",NULL, $1, $3); $$->nodeType = string("void"); }
   ;
 
 constant_expression 

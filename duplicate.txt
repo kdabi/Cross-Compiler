@@ -1,19 +1,29 @@
-int main( unsigned float a,int b){
-    int k=1.0;
-    char j[10];
-    char * i;
- //   unsigned b = -1;
-    int h[3][4];
-    if(i==b){;}
-    int x = a?b:i;
-  { int y=1;
-    ++y;
-    int* f ;
- //  int m = h[1][2][3];
-  //int u =h[1];
-  //int f = h[1][1];
- // int l =h[1][];
- //  a= k();
-  }
- // y++;
+/* C program for exponent series */ 
+/* taken from www.c4learn.com/c-programs/c-program-to-find-exponent-power-series.html */
+int bor = 12;
+int main() {
+   int n, count;
+   float x, term, sum;
+ 
+   printf("\nEnter value of x :");
+   scanf("%f", &x);
+ 
+   n = term = sum = count = 1;
+ 
+   while (n <= 100) {
+
+      term = term *x / n;
+      sum = sum + term;
+      count = count + 1;
+       int u =1;
+      char *h;
+      if (term < ACCURACY)
+         n = 999;
+      else
+         n = n + 1;
+   }
+ 
+   printf("\nTerms = %d Sum = %f", count, sum);
+   return 0;
 }
+

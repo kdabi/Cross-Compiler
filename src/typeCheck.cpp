@@ -324,3 +324,58 @@ char* conditionalExpr(string type1,string type2){
      
    return NULL;
 }
+
+char* validAssign(string type1,string type2){
+    char * a =new char();
+   if(isInt(type2) && (type1[type1.size()-1]=='*')){
+      a="warning";return a;
+   }
+   if(isInt(type1) && (type2[type2.size()-1]=='*')){
+      a="warning";return a;
+   }
+    if(type1==string("char"))  type1=string("long long");
+    if(isInt(type1))   type1=string("long double");
+    if(type2==string("char"))  type2=string("long long");
+    if(isInt(type2))   type2=string("long double");
+    
+   if(isFloat(type1) && isFloat(type2)){ a = "true";return a; } 
+   if(type1==string("void*") && (type2[type2.size()-1]=='*')){
+      a="true";return a;
+   }
+   if(type2==string("void*") && (type1[type1.size()-1]=='*')){
+      a="true";return a;
+   }
+   if(type1==type2){
+     a="true";return a;
+   }
+   if((type2[type2.size()-1]=='*') && (type1[type1.size()-1]=='*')){
+      a="warning";return a;
+   }
+   return NULL;
+}
+
+char* assignmentExpr(string type1,string type2,char* op){
+    char *a = new char();
+    if(!strcmp(op,"=")){
+        a = validAssign(type1,type2);
+        if(a) return a;
+        else return NULL;
+    }
+    else if((!strcmp(op,"*="))||(!strcmp(op,"/="))||(!strcmp(op,"%="))){
+        a = multilplicativeExpr(type1,type2,op[0]);
+        if(a){ a="true"; return a; }
+    }
+    else if((!strcmp(op,"+="))||(!strcmp(op,"-="))){
+        a = additiveExpr(type1,type2,op[0]);
+        if(a){ a="true"; return a;}
+    }
+    else if((!strcmp(op,">>="))||(!strcmp(op,"<<="))){
+        a = shiftExpr(type1,type2);
+        if(a){ a="true"; return a;}
+    }
+    else if((!strcmp(op,"&="))||(!strcmp(op,"^="))||(!strcmp(op,"|="))){
+        a = bitwiseExpr(type1,type2);
+        if(a){ a="true"; return a;}
+    }
+    return NULL;
+}
