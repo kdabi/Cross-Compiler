@@ -6,6 +6,7 @@
 using namespace std;
 
 typedef struct {
+  long long size;
   long long int iVal;
   long double rVal;
   char *str;

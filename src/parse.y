@@ -100,17 +100,23 @@ primary_expression
   ;
 
 constant
-  : I_CONSTANT                    {$$=terminal($1->str); 
+  : I_CONSTANT                    { long long val = $1->iVal;
+                                   $$=terminal($1->str); 
 				   char * a = constant($1->nType);
                                    $$->isInit=1;
                                    string as(a);
-				   $$->nodeType=as;			
+				   $$->nodeType=as;
+                                   $$->iVal = val;
+                                   $$->exprType=5;		
 				   }
-  | F_CONSTANT                    {$$=terminal($1->str);
+  | F_CONSTANT                    { long long val = (int) $1->rVal;
+                                   $$=terminal($1->str);
                                    char * a = constant($1->nType);
                                    $$->isInit =1;
                                    string as(a);
                                    $$->nodeType=as;
+                                   $$->iVal = val;
+                                   $$->exprType=5;		
                                    }
   | ENUMERATION_CONSTANT           {$$=terminal($1);
                               $$->isInit=1;
@@ -744,23 +750,31 @@ init_declarator_list
 
 init_declarator
   : declarator '=' initializer  { 
+                $$ = nonTerminal("=", NULL, $1, $3);
                     if($1->exprType==1){ char *t=new char();
-                      strcpy(t,($$->nodeType).c_str()); 
+                      strcpy(t,($1->nodeType).c_str()); 
                       char *key =new char();
                       strcpy(key,($1->nodeKey).c_str());
-                if(lookup($1->nodeKey)){ yyerror("Error : redeclaration of %s",key); } 
-                else { insertSymbol(*curr,key,t,0,0,1); }
+                if(lookup($1->nodeKey)){ 
+                     yyerror("Error: Redeclaration of \'%s\'",key); 
+                }else if($1->nodeType==string("void")){
+                     yyerror("Error: Variable or field \'%s\' declared void",key);
                 } 
-                $$ = nonTerminal("=", NULL, $1, $3);
+                else { insertSymbol(*curr,key,t,$1->size,0,1); }
+                } 
                }
-  | declarator     {                                                                           if($1->exprType==1){ char *t=new char();
+  | declarator     {  
+                     $$= $1;
+                     if($1->exprType==1){ char *t=new char();
                      strcpy(t,($1->nodeType).c_str());
                      char *key =new char();
                      strcpy(key,($1->nodeKey).c_str());
-                  if(lookup($1->nodeKey)){ yyerror("Error: redeclaration of %s",key);}
-                   else {  insertSymbol(*curr,key,t,0,0,0);}
+                  if(lookup($1->nodeKey)){ 
+                        yyerror("Error: redeclaration of \'%s\'",key);
+                  }else if($1->nodeType==string("void")){
+                     yyerror("Error: Variable or field \'%s\' declared void",key);
+                  }else {  insertSymbol(*curr,key,t,$1->size,0,0);}
                      } 
-                   $$ = $1;
                }
   ;
 
@@ -970,14 +984,18 @@ declarator
                if($2->exprType==1){$$->nodeType=$2->nodeType+$1->nodeType;
                $$->nodeKey = $2->nodeKey;
                $$->exprType=1;}
-               if($2->exprType==2){ funcName = $2->nodeKey; funcType = $2->nodeType; }
+               if($2->exprType==2){ funcName = $2->nodeKey; funcType = $2->nodeType; }   
+                char* a = new char();
+                strcpy(a,($$->nodeType).c_str());$$->size = getSize(a);
          }
-	| direct_declarator {$$ = $1;if($1->exprType==2){ funcName=$1->nodeKey; funcType = $1->nodeType; } }
+	| direct_declarator {$$ = $1;if($1->exprType==2){ funcName=$1->nodeKey; funcType = $1->nodeType; } 
+          }
 	;
 
 direct_declarator
 	: IDENTIFIER{ 
-                    $$=terminal($1);$$->exprType=1;$$->nodeKey=string($1);$$->nodeType=typeName;
+                    $$=terminal($1);$$->exprType=1;$$->nodeKey=string($1);$$->nodeType=typeName; char* a =new char();
+                strcpy(a,typeName.c_str()); $$->size = getSize(a);
 			   }
 	| '(' declarator ')' {$$ = $2;
                            if($2->exprType==1){ $$->exprType=1;
@@ -987,13 +1005,19 @@ direct_declarator
 	| direct_declarator '[' ']' {$$ = nonTerminalSquareB("direct_declarator", $1);
                       if($1->exprType==1){ $$->exprType=1;
                                           $$->nodeKey=$1->nodeKey;
-                                          $$->nodeType=$1->nodeType+string("*");}
+                                          $$->nodeType=$1->nodeType+string("*");}   
+                          char* a = new char();
+                          strcpy(a,($$->nodeType).c_str());
+                          $$->size = getSize(a);
                                } 
 	| direct_declarator '[' '*' ']' {$$ = nonTerminalFourChild("direct_declarator", $1, NULL, NULL, NULL, $3);
           if($1->exprType==1){ $$->exprType=1;
                                           $$->nodeKey=$1->nodeKey;
                                           $$->nodeType=$1->nodeType+string("*");}
-
+ 
+                          char* a = new char();
+                          strcpy(a,($$->nodeType).c_str());
+                          $$->size = getSize(a);
                             }
 	| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'{ 
 				temp = terminal($3);
@@ -1002,6 +1026,10 @@ direct_declarator
                                           $$->nodeKey=$1->nodeKey;
                                           $$->nodeType=$1->nodeType+string("*");}
              
+                 if($5->iVal){ $$->size =  $1->size*$5->iVal; }
+                 else { char* a = new char();
+                        strcpy(a,($$->nodeType).c_str());
+                        $$->size = getSize(a); }
                           }
 	| direct_declarator '[' STATIC assignment_expression ']' { 
 				temp = terminal($3);
@@ -1009,12 +1037,19 @@ direct_declarator
         if($1->exprType==1){ $$->exprType=1;
                                           $$->nodeKey=$1->nodeKey;
                                           $$->nodeType=$1->nodeType+string("*");}
+                 if($4->iVal){ $$->size = $1->size *$4->iVal; }
+                 else { char* a = new char();
+                        strcpy(a,($$->nodeType).c_str());
+                        $$->size = getSize(a); }
 
                           }
 	| direct_declarator '[' type_qualifier_list '*' ']' {$$ = nonTerminalFourChild("direct_declarator", $1, $3, NULL, NULL, $4);
           if($1->exprType==1){ $$->exprType=1;
                                           $$->nodeKey=$1->nodeKey;
                                           $$->nodeType=$1->nodeType+string("*");}
+                          char* a = new char();
+                          strcpy(a,($$->nodeType).c_str());
+                          $$->size = getSize(a);
    
          }
 	| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']' { 
@@ -1024,24 +1059,40 @@ direct_declarator
           if($1->exprType==1){ $$->exprType=1;
                                           $$->nodeKey=$1->nodeKey;
                                           $$->nodeType=$1->nodeType+string("*");}
+                 if($5->iVal){ $$->size = $1->size * $5->iVal; }
+                 else { char* a = new char();
+                        strcpy(a,($$->nodeType).c_str());
+                        $$->size = getSize(a); }
                           
 }
 	| direct_declarator '[' type_qualifier_list assignment_expression ']'{$$ = nonTerminalFourChild("direct_declarator", $1, $3, $4, NULL, NULL);
           if($1->exprType==1){ $$->exprType=1;
                                           $$->nodeKey=$1->nodeKey;
                                           $$->nodeType=$1->nodeType+string("*");}
+                 if($4->iVal){ $$->size = $1->size *$4->iVal; }
+                 else { char* a = new char();
+                        strcpy(a,($$->nodeType).c_str());
+                        $$->size = getSize(a); }
 
 }
 	| direct_declarator '[' type_qualifier_list ']' {$$ = nonTerminal("direct_declarator", NULL, $1, $3);
           if($1->exprType==1){ $$->exprType=1;
                                $$->nodeKey=$1->nodeKey;
-                                $$->nodeType=$1->nodeType+string("*");}
+                                $$->nodeType=$1->nodeType+string("*");
+                         char* a = new char();
+                        strcpy(a,($$->nodeType).c_str());
+                        $$->size = getSize(a);
+           }
 
          }
 	| direct_declarator '[' assignment_expression ']' {$$ = nonTerminal("direct_declarator", NULL, $1, $3);
          if($1->exprType==1){ $$->exprType=1;
                             $$->nodeKey=$1->nodeKey;
                             $$->nodeType=$1->nodeType+string("*");}
+                 if($3->iVal){ $$->size = $1->size * $3->iVal; }
+                 else { char* a = new char();
+                        strcpy(a,($$->nodeType).c_str());
+                        $$->size = getSize(a); }
 
         }
 	| direct_declarator '(' E3 parameter_type_list ')'
@@ -1052,6 +1103,9 @@ direct_declarator
                            $$->nodeType=$1->nodeType;
                            insertFuncArguments($1->nodeKey,funcArguments);
                            funcArguments=string("");
+                         char* a = new char();
+                        strcpy(a,($$->nodeType).c_str());
+                        $$->size = getSize(a);
                            }
                }
 	| direct_declarator '(' E3 ')'
@@ -1064,8 +1118,15 @@ direct_declarator
                           funcArguments = string("");
                           }  
                        $$->nodeType=$1->nodeType;
+                         char* a = new char();
+                        strcpy(a,($$->nodeType).c_str());
+                        $$->size = getSize(a);
                      } 
-	| direct_declarator '(' E3 identifier_list ')' {$$ = nonTerminal("direct_declarator", NULL, $1, $4); }
+	| direct_declarator '(' E3 identifier_list ')' {$$ = nonTerminal("direct_declarator", NULL, $1, $4); 
+                         char* a = new char();
+                        strcpy(a,($$->nodeType).c_str());
+                        $$->size = getSize(a);                            
+          }
 	;
 
 E3 
@@ -1109,7 +1170,7 @@ parameter_declaration
                      char *key =new char();
                      strcpy(key,($2->nodeKey).c_str());
                   if(lookup($2->nodeKey)){ yyerror("Error: redeclaration of %s",key);}
-                   else {  insertSymbol(*curr,key,t,0,0,1);}
+                   else {  insertSymbol(*curr,key,t,$2->size,0,1);}
                 if(funcArguments==string(""))funcArguments=($2->nodeType);
                else funcArguments= funcArguments+string(",")+($2->nodeType);
                      } 
@@ -1294,7 +1355,13 @@ labeled_statement
 
 compound_statement
 	: '{' '}'   {isFunc=0;$$ = terminal("{ }");} 
-	| E1  block_item_list '}' {if(blockSym){ printSymTables(curr,$1);    updateSymTable(); blockSym--; } $$ = $2;}
+	| E1  block_item_list '}'  {if(blockSym){ string s($1);
+                                    s=s+string(".csv");   
+                                    string u($3);
+                                    printSymTables(curr,s);
+                                    updateSymTable(u); blockSym--; 
+                                 } $$ = $2;
+                               }
 	;
 E1 
     :  '{'       { if(isFunc==0) {symNumber++;
@@ -1303,7 +1370,7 @@ E1
                         makeSymTable(symFileName,scope,string("12345"));
                         char * y=new char();
                         strcpy(y,symFileName.c_str());
-                        $$ = strcat(y,".csv");
+                        $$ = y;
                         blockSym++;
                         }
                        isFunc=0;
@@ -1393,8 +1460,23 @@ external_declaration
 	;
 
 function_definition
-	: declaration_specifiers declarator E2 declaration_list compound_statement {typeName=string("");printSymTables(curr,$3); symNumber=0; updateSymTable();$$ = nonTerminalFourChild("function_definition", $1, $2, $4, $5, NULL);}
-	| declaration_specifiers declarator E2 compound_statement  {typeName=string(""); printSymTables(curr,$3);  symNumber=0;  updateSymTable();$$ = nonTerminal2("function_definition", $1, $2, $4);}
+	: declaration_specifiers declarator E2 declaration_list compound_statement 
+         {      typeName=string("");
+                string s($3);   
+                string u = s+string(".csv");
+                printSymTables(curr,u); 
+                symNumber=0; 
+               updateSymTable(s);
+                $$ = nonTerminalFourChild("function_definition", $1, $2, $4, $5, NULL);
+         }
+	| declaration_specifiers declarator E2 compound_statement  {
+              typeName=string("");
+              string s($3);string u =s+string(".csv");
+              printSymTables(curr,u); 
+              symNumber=0;
+              updateSymTable(s);
+              $$ = nonTerminal2("function_definition", $1, $2, $4);
+             }
 	;
 
 E2 
@@ -1405,7 +1487,7 @@ E2
                                          makeSymTable(symFileName,scope,funcType);
                                          char* y= new char();
                                          strcpy(y,symFileName.c_str());
-                                         $$ = strcat(y,".csv");
+                                         $$ = y;
        }
     ;
 
