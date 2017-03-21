@@ -32,7 +32,7 @@ char* postfixExpr(string type, int prodNum){
 	else 
 	    return NULL;
     }
-    if (prodNum==2){
+    if (prodNum==2){ // postfix_expression '(' argument_expression_list ')'
 	string tmp = type.substr(0,5);
 	if(tmp==string("FUNC_")){
 	    newtype += 5;
@@ -379,3 +379,4 @@ char* assignmentExpr(string type1,string type2,char* op){
     }
     return NULL;
 }
+

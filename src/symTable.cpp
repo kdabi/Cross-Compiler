@@ -33,6 +33,10 @@ void stInitialize(){
     curr = &GST;
     is_next = 0;
     addKeywords();
+    funcArgumentMap.insert(pair<string,string>(string("printf"),string("char*,...")));
+    funcArgumentMap.insert(pair<string,string>(string("scanf"),string("char*,...")));
+    funcArgumentMap.insert(pair<string,string>(string("strlen"),string("void*")));
+
 }
 void paramTable(){   
       makeSymTable(string("Next"),S_FUNC,string(""));
@@ -86,6 +90,11 @@ void fprintStruct(sEntry *a, FILE* file){
 
     }
 
+}
+
+string funcArgList(string key){
+      string a = funcArgumentMap[key];
+      return a;
 }
 
 void makeSymTable(string name,int type,string funcType){

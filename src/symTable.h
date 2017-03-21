@@ -48,3 +48,4 @@ sEntry* makeEntry(string type, ull size, ll offset,int isInit);
 void insertSymbol(symTable& table,string key,string type,ull size,ll offset,int isInit);
 void printSymTables(symTable *a, string filename);
 void printFuncArguments();
+string funcArgList(string key);

@@ -28,6 +28,7 @@ string symFileName;
 string funcName;
 string funcType;
 string funcArguments;
+string currArguments;
 %}
 
 
@@ -157,10 +158,17 @@ generic_association
 	  if(s){
 		  string as(s); 
 		  $$->nodeType =as;
+                  if($1->exprType==3){
+                        string funcArgs = funcArgList($1->nodeKey);
+                        if(!(funcArgs==string(""))) {
+                            yyerror("Error:\'%s\' function call requires arguments to be passed \n     \'%s %s\( %s \)\'",($1->nodeKey).c_str(),($$->nodeType).c_str(),($1->nodeKey).c_str(),funcArgs.c_str());
+                        }  
+                  }
 	  }
 	  else {
 		  yyerror("Error: Invalid Function call");
 	  }
+          currArguments=string("");
 
   }
   | postfix_expression '(' argument_expression_list ')'   {$$ = nonTerminal("postfix_expression", NULL, $1, $3); 
@@ -169,10 +177,47 @@ generic_association
 	  if(s){
 		  string as(s); 
 		  $$->nodeType =as;
+                  if($1->exprType==3){
+                       string funcArgs = funcArgList($1->nodeKey);
+                       char* a =new char();
+                       string temp1 = currArguments;
+                       string temp2 = funcArgs;
+                       string typeA,typeB;
+                       string delim = string(",");
+                       unsigned f1=1;
+                       unsigned f2=1;
+                       int argNo = 0;
+                       while(f1!=-1 && f2!=-1){
+                          f1 = temp1.find_first_of(delim);
+                          f2 = temp2.find_first_of(delim);
+                            argNo++;
+                            if(f1==-1) typeA = temp1; else{ typeA = temp1.substr(0,f1); temp1 = temp1.substr(f1+1);}
+                            if(f2==-1) typeB = temp2 ; else{ typeB = temp2.substr(0,f2); temp2 = temp2.substr(f2+1); }
+                            if(typeB==string("...")) break;
+                            a = validAssign(typeA,typeB);
+                            if(a){
+                                   if(!strcmp(a,"warning")) { yyerror("Warning: Passing argumnet %d of \'%s\' from incompatible pointer type.\n Note : expected \'%s\' but argument is of type \'%s\'\n     \'%s %s\( %s \)\'",argNo,($1->nodeKey).c_str(),typeB.c_str(),typeA.c_str(),($$->nodeType).c_str(),($1->nodeKey).c_str(),funcArgs.c_str()); }
+                            }
+                            else{
+                                  yyerror("Error: Incompatible type for argumnet %d of \'%s\' .\n Note : expected \'%s\' but argument is of type \'%s\'\n     \'%s %s\( %s \)\'",argNo,($1->nodeKey).c_str(),typeB.c_str(),typeA.c_str(),($$->nodeType).c_str(),($1->nodeKey).c_str(),funcArgs.c_str()); 
+                            }
+                            if((f1!=-1)&&(f2!=-1)){
+                                 continue;
+                           }else if(f2!=-1){
+                                 if(!(temp2==string("..."))) yyerror("Error: Too few arguments for the function \'%s\'\n    \'%s %s\( %s \)\'",($1->nodeKey).c_str(),($$->nodeType).c_str(),($1->nodeKey).c_str(),funcArgs.c_str());
+                                 break;
+                           }else if(f1!=-1){
+                                   yyerror("Error: Too many arguments for the function \'%s\'\n    \'%s %s\( %s \)\'",($1->nodeKey).c_str(),($$->nodeType).c_str(),($1->nodeKey).c_str(),funcArgs.c_str());
+                                   break;
+                          }else{ break; }                    
+                  }
+                 }         
+                 
 	  }
 	  else {
 		  yyerror("Error: Invalid Function call");
 	  }
+          currArguments=string("");
 } 
   | postfix_expression '.' IDENTIFIER       {
                                                 temp = terminal($3);
@@ -243,6 +288,7 @@ argument_expression_list
 	  {
 		$$ = $1;
 		if($1->isInit==1)$$->isInit = 1;
+                currArguments = $1->nodeType;
           } 
   | argument_expression_list ',' assignment_expression
 	    {
@@ -251,6 +297,7 @@ argument_expression_list
 		string as(a);
 		$$->nodeType = as;
 		if($1->isInit == 1 && $3->isInit==1) $$->isInit=1;
+                currArguments = currArguments +string(",")+ $3->nodeType;
 
               } 
   ;
@@ -1429,7 +1476,7 @@ int main(int argc,char **argv){
   // default output file
   if(fileflag == 0)
   digraph =fopen("digraph.gv","w");
-
+  currArguments = string("");
   stInitialize();
   graphInitialization();
   yyparse();
