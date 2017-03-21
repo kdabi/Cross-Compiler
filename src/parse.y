@@ -619,7 +619,8 @@ assignment_expression
                char* a = assignmentExpr($1->nodeType,$3->nodeType,$2);
                if(a){
                     if(!strcmp(a,"true")){ $$->nodeType = $1->nodeType; }
-                    if(!strcmp(a,"warning")){ $$->nodeType = $1->nodeType;                         yyerror("Warning: Assignment with incompatible pointer type"); 
+                    if(!strcmp(a,"warning")){ $$->nodeType = $1->nodeType;
+                         yyerror("Warning: Assignment with incompatible pointer type"); 
                          }
                     }
                 else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($3->nodeType).c_str()); }
@@ -1136,25 +1137,72 @@ direct_abstract_declarator
 	;
 
 initializer
-	: '{' initializer_list '}' {$$ = $2;}
-	| '{' initializer_list ',' '}' {$$ = nonTerminal("initializer", $3, $2 ,NULL);}
+	: '{' initializer_list '}' {$$ = $2; $$->nodeType = $2->nodeType+string("*"); }
+	| '{' initializer_list ',' '}' {$$ = nonTerminal("initializer", $3, $2 ,NULL); $$->nodeType = $2->nodeType+string("*"); }
 	| assignment_expression {$$ = $1;}
 	;
 
 initializer_list
-	: designation initializer {$$ = nonTerminal("initializer_list", NULL, $1 ,$2);}
+	: designation initializer {
+           $$ = nonTerminal("initializer_list", NULL, $1 ,$2);
+           $$->nodeType = $2->nodeType;
+           char* a =validAssign($1->nodeType,$2->nodeType);
+               if(a){
+                    if(!strcmp(a,"true")){ ; }
+                    if(!strcmp(a,"warning")){ 
+                         yyerror("Warning: Assignment with incompatible pointer type"); 
+                         }
+                    }
+                else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($2->nodeType).c_str()); }
+           
+        }
 	| initializer {$$ = $1;}
-	| initializer_list ',' designation initializer {$$ = nonTerminal("initializer_list", $2, $1 ,$3);}
-	| initializer_list ',' initializer {$$ = nonTerminal("initializer_list", NULL, $1 ,$3);}
+	| initializer_list ',' designation initializer {
+          $$ = nonTerminal2("initializer_list", $1, $3 ,$4);
+          $$->nodeType = $1->nodeType;
+           char* a =validAssign($3->nodeType,$4->nodeType);
+               if(a){
+                    if(!strcmp(a,"true")){ ; }
+                    if(!strcmp(a,"warning")){ ;
+                         yyerror("Warning: Assignment with incompatible pointer type"); 
+                         }
+                     }  
+                else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($3->nodeType).c_str(),($4->nodeType).c_str()); }
+            a =validAssign($1->nodeType,$4->nodeType);
+               if(a){
+                    if(!strcmp(a,"true")){ ; }
+                    if(!strcmp(a,"warning")){ ;
+                         yyerror("Warning: Assignment with incompatible pointer type"); 
+                         }
+                     }  
+                else{ yyerror("Error: Incompatible types when initializing type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($4->nodeType).c_str()); }
+                    
+         
+          }
+	| initializer_list ',' initializer {
+          $$ = nonTerminal("initializer_list", NULL, $1 ,$3);
+          $$->nodeType = $1->nodeType;
+           char* a =validAssign($1->nodeType,$3->nodeType);
+               if(a){
+                    if(!strcmp(a,"true")){ ; }
+                    if(!strcmp(a,"warning")){ ;
+                         yyerror("Warning: Assignment with incompatible pointer type"); 
+                         }
+                     }  
+                else{ yyerror("Error: Incompatible types when initializing type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($3->nodeType).c_str()); }
+        }
 	;
 
 designation
-	: designator_list '='  {$$ = nonTerminal("designation", "=", $1 ,NULL);}
+	: designator_list '='  { 
+           $$ = nonTerminal("designation", "=", $1 ,NULL);
+           $$->nodeType = $1->nodeType=1;
+           }
 	;
 
 designator_list
 	: designator  {$$ = $1;}
-	| designator_list designator  {$$ = nonTerminal("designator_list", NULL, $1 ,$2);}
+	| designator_list designator  {$$ = nonTerminal("designator_list", NULL, $1 ,$2); $$->nodeType = $2->nodeType;}
 	;
 
 designator
