@@ -751,7 +751,7 @@ init_declarator_list
 init_declarator
   : declarator '=' initializer  { 
                 $$ = nonTerminal("=", NULL, $1, $3);
-                    if($1->exprType==1){ char *t=new char();
+                    if($1->exprType==1||$1->exprType==15){ char *t=new char();
                       strcpy(t,($1->nodeType).c_str()); 
                       char *key =new char();
                       strcpy(key,($1->nodeKey).c_str());
@@ -760,7 +760,8 @@ init_declarator
                 }else if($1->nodeType==string("void")){
                      yyerror("Error: Variable or field \'%s\' declared void",key);
                 } 
-                else { insertSymbol(*curr,key,t,$1->size,0,1); }
+                else { if($$->exprType==15) { insertSymbol(*curr,key,t,($3->exprType*$1->iVal),0,1); }
+                        insertSymbol(*curr,key,t,$1->size,0,1); }
                 } 
                }
   | declarator     {  
@@ -1009,6 +1010,9 @@ direct_declarator
                           char* a = new char();
                           strcpy(a,($$->nodeType).c_str());
                           $$->size = getSize(a);
+                          strcpy(a,($1->nodeType).c_str());
+                          $$->exprType=15;
+                          $$->iVal=getSize(a);
                                } 
 	| direct_declarator '[' '*' ']' {$$ = nonTerminalFourChild("direct_declarator", $1, NULL, NULL, NULL, $3);
           if($1->exprType==1){ $$->exprType=1;
@@ -1131,7 +1135,8 @@ direct_declarator
 
 E3 
    : %empty                 {   typeName =string("");  
-                          funcArguments = string("");  }
+                          funcArguments = string("");
+                           paramTable();  }
     ;
 
 pointer
@@ -1164,7 +1169,7 @@ parameter_list
 
 parameter_declaration
 	: declaration_specifiers declarator {typeName=string("");
-          paramTable();
+          //paramTable();
          if($2->exprType==1){ char *t=new char();
                      strcpy(t,($2->nodeType).c_str());
                      char *key =new char();
@@ -1246,7 +1251,7 @@ direct_abstract_declarator
 
 initializer
 	: '{' initializer_list '}' {$$ = $2; $$->nodeType = $2->nodeType+string("*"); }
-	| '{' initializer_list ',' '}' {$$ = nonTerminal("initializer", $3, $2 ,NULL); $$->nodeType = $2->nodeType+string("*"); }
+	| '{' initializer_list ',' '}' {$$ = nonTerminal("initializer", $3, $2 ,NULL); $$->nodeType = $2->nodeType+string("*"); $$->exprType =$2->exprType;}
 	| assignment_expression {$$ = $1;}
 	;
 
@@ -1262,9 +1267,9 @@ initializer_list
                          }
                     }
                 else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($2->nodeType).c_str()); }
-           
+           $$->exprType = 1;
         }
-	| initializer {$$ = $1;}
+	| initializer {$$ = $1;$$->exprType=1;}
 	| initializer_list ',' designation initializer {
           $$ = nonTerminal2("initializer_list", $1, $3 ,$4);
           $$->nodeType = $1->nodeType;
@@ -1285,7 +1290,7 @@ initializer_list
                      }  
                 else{ yyerror("Error: Incompatible types when initializing type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($4->nodeType).c_str()); }
                     
-         
+            $$->exprType =$1->exprType+1;
           }
 	| initializer_list ',' initializer {
           $$ = nonTerminal("initializer_list", NULL, $1 ,$3);
@@ -1298,7 +1303,8 @@ initializer_list
                          }
                      }  
                 else{ yyerror("Error: Incompatible types when initializing type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($3->nodeType).c_str()); }
-        }
+           $$->exprType = $1->exprType+1;
+        }          
 	;
 
 designation
@@ -1357,7 +1363,7 @@ compound_statement
 	: '{' '}'   {isFunc=0;$$ = terminal("{ }");} 
 	| E1  block_item_list '}'  {if(blockSym){ string s($1);
                                     s=s+string(".csv");   
-                                    string u($3);
+                                    string u($1);
                                     printSymTables(curr,s);
                                     updateSymTable(u); blockSym--; 
                                  } $$ = $2;

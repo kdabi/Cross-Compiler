@@ -7,6 +7,8 @@ map<int, string> statusMap;
 long int blockSize[100];
 int blockNo ;
 long long offsetG;
+long long offsetNext[100];
+int offsetNo;
 
 symTable GST;
 int is_next;
@@ -34,6 +36,7 @@ void stInitialize(){
         blockSize[blockNo]=0;
     }
     offsetG=0;
+    offsetNo=0;
     blockNo=0;
     switchItemMap();
     tParent.insert(make_pair<symTable*, symTable*>(&GST, NULL));
@@ -47,6 +50,8 @@ void stInitialize(){
 
 }
 void paramTable(){   
+      offsetNo++;
+      offsetNext[offsetNo]=offsetG;
       makeSymTable(string("Next"),S_FUNC,string(""));
       is_next=1;
 }
@@ -68,7 +73,8 @@ string returnSymType(string key){
 
 void insertSymbol(symTable& table,string key,string type,ull size,ll offset, int isInit){
    blockSize[blockNo] = blockSize[blockNo] + size;
-   table.insert (pair<string,sEntry *>(key,makeEntry(type,size,offsetG,isInit)));
+   if(offset==10){ table.insert (pair<string,sEntry *>(key,makeEntry(type,size,offsetNext[offsetNo],isInit))); }
+   else { table.insert (pair<string,sEntry *>(key,makeEntry(type,size,offsetG,isInit))); }
    offsetG = offsetG + size;
    return;
 }
@@ -110,7 +116,8 @@ string funcArgList(string key){
 void makeSymTable(string name,int type,string funcType){
   string f ;
   if(funcType!="12345") f =string("FUNC_")+funcType; else f = string("Block");
-  if(is_next==1){ insertSymbol(*tParent[curr],name,f,0,0,1);
+  if(is_next==1){ insertSymbol(*tParent[curr],name,f,0,10,1);
+                  offsetNo--;
                   // updateOffset(name,string("Next")); 
                   (*tParent[curr]).erase(string("Next"));   
        }
