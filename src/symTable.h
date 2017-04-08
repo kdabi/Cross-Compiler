@@ -30,7 +30,8 @@ extern map<string ,int> switchItem;
 extern map<int, string> statusMap;
 extern long int blockSize[100];
 extern int blockNo;
-extern long long offsetG;
+extern long long offsetG[100];
+extern int offsetGNo;
 
 extern symTable GST;
 extern symTable *curr;
@@ -49,6 +50,7 @@ void insertFuncArguments(string a,string b);
 //void updateKey(string key,void *val);
 void updateSymTable(string key);
 sEntry* lookup(string a);
+sEntry* scopeLookup(string a);
 sEntry* makeEntry(string type, ull size, ll offset,int isInit);
 void insertSymbol(symTable& table,string key,string type,ull size,ll offset,int isInit);
 void printSymTables(symTable *a, string filename);

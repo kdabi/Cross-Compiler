@@ -6,9 +6,10 @@ map<string ,int> switchItem;
 map<int, string> statusMap;
 long int blockSize[100];
 int blockNo ;
-long long offsetG;
 long long offsetNext[100];
 int offsetNo;
+long long offsetG[100];
+int offsetGNo;
 
 symTable GST;
 int is_next;
@@ -35,7 +36,8 @@ void stInitialize(){
     for(blockNo=0;blockNo<100;blockNo++){
         blockSize[blockNo]=0;
     }
-    offsetG=0;
+    offsetGNo=0;
+    offsetG[offsetGNo]=0;
     offsetNo=0;
     blockNo=0;
     switchItemMap();
@@ -51,7 +53,7 @@ void stInitialize(){
 }
 void paramTable(){   
       offsetNo++;
-      offsetNext[offsetNo]=offsetG;
+      offsetNext[offsetNo]=offsetG[offsetGNo];
       makeSymTable(string("Next"),S_FUNC,string(""));
       is_next=1;
 }
@@ -74,8 +76,8 @@ string returnSymType(string key){
 void insertSymbol(symTable& table,string key,string type,ull size,ll offset, int isInit){
    blockSize[blockNo] = blockSize[blockNo] + size;
    if(offset==10){ table.insert (pair<string,sEntry *>(key,makeEntry(type,size,offsetNext[offsetNo],isInit))); }
-   else { table.insert (pair<string,sEntry *>(key,makeEntry(type,size,offsetG,isInit))); }
-   offsetG = offsetG + size;
+   else { table.insert (pair<string,sEntry *>(key,makeEntry(type,size,offsetG[offsetGNo],isInit))); }
+   offsetG[offsetGNo] = offsetG[offsetGNo] + size;
    return;
 }
 
@@ -125,6 +127,8 @@ void makeSymTable(string name,int type,string funcType){
    blockNo++;
    symTable* myTable = new symTable;
     insertSymbol(*curr,name,f,0,0,1);
+    offsetGNo++;
+    offsetG[offsetGNo]=0;
     tParent.insert(pair<symTable*, symTable*>(myTable,curr));
     symTable_type.insert(pair<symTable*, int>(myTable,type));
     curr = myTable; }
@@ -133,6 +137,8 @@ void makeSymTable(string name,int type,string funcType){
 
 void updateSymTable(string key){
     curr = tParent[curr];
+    offsetGNo--;
+    offsetG[offsetGNo] += offsetG[offsetGNo+1];
     updateSymtableSize(key);
     blockSize[blockNo-1] = blockSize[blockNo]+blockSize[blockNo-1];
     blockSize[blockNo] = 0;
@@ -149,6 +155,14 @@ sEntry* lookup(string a){
       if(tParent[tmp]!=NULL) tmp= tParent[tmp];
       else break;
    }
+   return NULL;
+}
+sEntry* scopeLookup(string a){
+   symTable * tmp;
+   tmp = curr;
+      if ((*tmp).count(a)){
+         return (*tmp)[a];
+      }
    return NULL;
 }
 /*
@@ -238,7 +252,7 @@ void printSymTables(symTable* a, string filename) {
   fclose(file);
 }
 void addKeywords(){
-
+/*
 //-------------------inserting keywords-------------------------------------------
   { string *keyword = new string(); *keyword = "AUTO"; insertSymbol(*curr,"auto","Keyword",8,0,1); } // auto keyword
   { string *keyword = new string(); *keyword = "BREAK"; insertSymbol(*curr,"break","Keyword",8,0,1); } // break keyword
@@ -338,8 +352,8 @@ void addKeywords(){
   {string *oper = new string();  *oper = "^"; insertSymbol(*curr,"^","Operator",8,0,1); } // ^ operator
   {string *oper = new string();  *oper = "|"; insertSymbol(*curr,"|","Operator",8,0,1); } // | operator
   {string *oper = new string();  *oper = "?"; insertSymbol(*curr,"?","Operator",8,0,1); } // ? operator
-
-/////////////// basic printf, scanf, strlen :: to get the code running /////////
+*/
+//////////////// basic printf, scanf, strlen :: to get the code running /////////
   insertSymbol(*curr,"printf","FUNC_ void",8,0,1); //
   insertSymbol(*curr,"scanf","FUNC_ void",8,0,1); //
   insertSymbol(*curr,"strlen","FUNC_ int",8,0,1); //

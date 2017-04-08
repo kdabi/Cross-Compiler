@@ -755,7 +755,7 @@ init_declarator
                       strcpy(t,($1->nodeType).c_str()); 
                       char *key =new char();
                       strcpy(key,($1->nodeKey).c_str());
-                if(lookup($1->nodeKey)){ 
+                if(scopeLookup($1->nodeKey)){ 
                      yyerror("Error: Redeclaration of \'%s\'",key); 
                 }else if($1->nodeType==string("void")){
                      yyerror("Error: Variable or field \'%s\' declared void",key);
@@ -770,7 +770,7 @@ init_declarator
                      strcpy(t,($1->nodeType).c_str());
                      char *key =new char();
                      strcpy(key,($1->nodeKey).c_str());
-                  if(lookup($1->nodeKey)){ 
+                  if(scopeLookup($1->nodeKey)){ 
                         yyerror("Error: redeclaration of \'%s\'",key);
                   }else if($1->nodeType==string("void")){
                      yyerror("Error: Variable or field \'%s\' declared void",key);
@@ -1174,7 +1174,7 @@ parameter_declaration
                      strcpy(t,($2->nodeType).c_str());
                      char *key =new char();
                      strcpy(key,($2->nodeKey).c_str());
-                  if(lookup($2->nodeKey)){ yyerror("Error: redeclaration of %s",key);}
+                  if(scopeLookup($2->nodeKey)){ yyerror("Error: redeclaration of %s",key);}
                    else {  insertSymbol(*curr,key,t,$2->size,0,1);}
                 if(funcArguments==string(""))funcArguments=($2->nodeType);
                else funcArguments= funcArguments+string(",")+($2->nodeType);
