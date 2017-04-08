@@ -11,6 +11,9 @@ parse.tab.c :
 lex.yy.c : 
 	lex $(SOURCE)/scan.l
 
+%.png: %.gv
+	dot -Tpng $? -o $@
+
 clean : 
 	rm -f $(BIN)/lexer  parse.tab.c lex.yy.c \
 	  parse.tab.h *.csv
