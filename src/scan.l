@@ -4,7 +4,6 @@
 #include <iostream>
 #include "nodes.h"
 #include "parse.tab.h"
-#include "symTable.h"
 void yyerror (char *,...);
 void get_int_info();
 void get_real_info();

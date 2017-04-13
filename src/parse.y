@@ -16,8 +16,9 @@ int blockSym=0;
 int yylex(void);
 void yyerror(char *s,...);
 #include "nodes.h"
-#include "symTable.h"
 #include "typeCheck.h"
+
+
 FILE *digraph;
 FILE *duplicate;
 node *temp,*temp1,*temp2;
@@ -29,13 +30,14 @@ string funcName;
 string funcType;
 string funcArguments;
 string currArguments;
+qid tempQid;
 %}
 
 
 /* Reference LexxAndYaccTutorial : by Tom Niemann*/
 %union {
   int number;     /*integer value*/
-  char *str; 
+  char *str;
   node *ptr;     /*node pointer */
   exprNode *expr;
   numb * num;
@@ -48,7 +50,7 @@ string currArguments;
 %token <str> UNSIGNED VOID VOLATILE WHILE ALIGNAS ALIGNOF ATOMIC BOOL COMPLEX
 %token <str> GENERIC IMAGINARY NORETURN STATIC_ASSERT THREAD_LOCAL FUNC_NAME
 %token <str> AUTO BREAK GOTO TYPEDEF_NAME IDENTIFIER ENUMERATION_CONSTANT
-%token <str> STRING_LITERAL 
+%token <str> STRING_LITERAL
 %token <num> I_CONSTANT F_CONSTANT
 %left <str> PTR_OP
 %token <str> INC_OP DEC_OP
@@ -56,12 +58,12 @@ string currArguments;
 %left <str> LE_OP GE_OP EQ_OP NE_OP
 %left <str> AND_OP OR_OP
 %right <str> MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
-%right <str> SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN 
+%right <str> SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
 %right <str> XOR_ASSIGN OR_ASSIGN
-%token <str> ELLIPSIS 
-%type <str> assignment_operator E1 E2 E3
+%token <str> ELLIPSIS
+%type <str> assignment_operator E1 E2 E3 E4 E5 E6
 
-%start translation_unit 
+%start translation_unit
 
 %left <str> ',' '^' '|' ';' '{' '}' '[' ']' '(' ')' '+' '-' '%' '/' '*' '.' '>' '<' SIZEOF
 %right <str> '&' '=' '!' '~' ':' '?'
@@ -88,8 +90,12 @@ primary_expression
                                          $$->isInit = lookup($1)->is_init;
                                          $$->nodeType=as;
                                          string key($1);
+                                         $$->exprType = 3;
                                          $$->nodeKey = key;
-                                         $$->exprType = 3; }
+                                         $$->place = pair<string,sEntry*>(key,lookup(key));
+                                         $$->bLine =getNextIndex();
+                                         $$->eLine =getNextIndex();
+                                    }
 				    else{ yyerror("Error: %s is not declared in this scope", $1);
                                       $$->nodeType = string("");}
 				  }
@@ -101,13 +107,14 @@ primary_expression
 
 constant
   : I_CONSTANT                    { long long val = $1->iVal;
-                                   $$=terminal($1->str); 
+                                   $$=terminal($1->str);
 				   char * a = constant($1->nType);
                                    $$->isInit=1;
                                    string as(a);
 				   $$->nodeType=as;
                                    $$->iVal = val;
-                                   $$->exprType=5;		
+                                   $$->exprType=5;
+                                   $$->place = pair<string,sEntry*>($1->str,NULL);
 				   }
   | F_CONSTANT                    { long long val = (int) $1->rVal;
                                    $$=terminal($1->str);
@@ -116,19 +123,26 @@ constant
                                    string as(a);
                                    $$->nodeType=as;
                                    $$->iVal = val;
-                                   $$->exprType=5;		
+                                   $$->exprType=5;
+                                   $$->place = pair<string,sEntry*>($1->str,NULL);
                                    }
   | ENUMERATION_CONSTANT           {$$=terminal($1);
                               $$->isInit=1;
+                              $$->place = pair<string,sEntry*>($1,NULL);
                              $$->nodeType=string("ENUMERATION_CONSTANT");}
   ;
 enumeration_constant    /* before it has been defined as such */
-  : IDENTIFIER                    {$$=terminal($1);}
+  : IDENTIFIER                    {$$=terminal($1);
+                                  }
   ;
 
 string
-  : STRING_LITERAL                {$$=terminal($1); $$->nodeType = string("char*"); $$->isInit =1; }
-  | FUNC_NAME                     {$$=terminal($1); $$->nodeType = string(); $$->isInit=1;}
+  : STRING_LITERAL                {$$=terminal($1); $$->nodeType = string("char*"); $$->isInit =1; 
+                                  $$->place = pair<string,sEntry*>($1,NULL);
+                                  }
+  | FUNC_NAME                     {$$=terminal($1); $$->nodeType = string(); $$->isInit=1;
+                                  $$->place = pair<string,sEntry*>($1,NULL);
+                                  }
   ;
 
 generic_selection
@@ -141,34 +155,48 @@ generic_assoc_list
 
 generic_association
   : type_name ':' assignment_expression      {$$ = nonTerminal2("generic_association", $1, $3, NULL);}
-  | DEFAULT ':' assignment_expression        {temp = terminal("DEFAULT"); $$ = nonTerminal2("generic_association", temp, $3, NULL);} 
+  | DEFAULT ':' assignment_expression        {   temp = terminal("DEFAULT");
+                                                 $$ = nonTerminal2("generic_association", temp, $3, NULL);
+                                             }
   ;
  postfix_expression
-  : primary_expression                       {$$ = $1;} 
-  | postfix_expression '[' expression ']' 
-   {
+  : primary_expression                       {$$ = $1;}
+  | postfix_expression '[' expression ']'
+                                             {
 						$$ = nonTerminal("postfix_expression[experssion]", NULL, $1, $3);
                          if($1->isInit==1 && $3->isInit==1)$$->isInit=1;
 						char* s = postfixExpr($1->nodeType, 1);
-						if(s){string as(s); 
+						if(s){string as(s);
 							$$->nodeType =as;
+                                                 $$->place = getTmpSym($$->nodeType);
+                                                 qid opT  = pair<string,sEntry*>("[]",NULL);
+                                                 int k = emit(opT, $1->place, $3->place, $$->place, -1);
+                                                 $$->bLine =$1->bLine;
+                                                 $$->eLine =k;
 						 }
 						else {
 						  yyerror("Error:  array indexed with more indices than its dimension ");
 						}
-                                             } 
+                                             }
   | postfix_expression '(' ')'               {  $$ = $1;
-              $$->isInit=1;	
-					
+              $$->isInit=1;
+
 	  char* s = postfixExpr($1->nodeType, 2);
 	  if(s){
-		  string as(s); 
+		  string as(s);
 		  $$->nodeType =as;
                   if($1->exprType==3){
                         string funcArgs = funcArgList($1->nodeKey);
+                         qid t = getTmpSym($$->nodeType);
+                        int k=emit(pair<string, sEntry*>("refParam", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), t, -1);
+                        qid t2 = getTmpSym($$->nodeType);
+                        int k1=emit(pair<string, sEntry*>("CALL", NULL), $1->place, pair<string, sEntry*>("1", NULL), t2, -1);
+                        $$->bLine =$1->bLine;
+                        $$->place = t2;
+                        $$->eLine =k1;
                         if(!(funcArgs==string(""))) {
                             yyerror("Error:\'%s\' function call requires arguments to be passed \n     \'%s %s\( %s \)\'",($1->nodeKey).c_str(),($$->nodeType).c_str(),($1->nodeKey).c_str(),funcArgs.c_str());
-                        }  
+                        }
                   }
 	  }
 	  else {
@@ -177,11 +205,11 @@ generic_association
           currArguments=string("");
 
   }
-  | postfix_expression '(' argument_expression_list ')'   {$$ = nonTerminal("postfix_expression", NULL, $1, $3); 
+  | postfix_expression '(' argument_expression_list ')'   {$$ = nonTerminal("postfix_expression", NULL, $1, $3);
           if($3->isInit==1) $$->isInit=1;
 	  char* s = postfixExpr($1->nodeType, 3);
 	  if(s){
-		  string as(s); 
+		  string as(s);
 		  $$->nodeType =as;
                   if($1->exprType==3){
                        string funcArgs = funcArgList($1->nodeKey);
@@ -205,7 +233,7 @@ generic_association
                                    if(!strcmp(a,"warning")) { yyerror("Warning: Passing argumnet %d of \'%s\' from incompatible pointer type.\n Note : expected \'%s\' but argument is of type \'%s\'\n     \'%s %s\( %s \)\'",argNo,($1->nodeKey).c_str(),typeB.c_str(),typeA.c_str(),($$->nodeType).c_str(),($1->nodeKey).c_str(),funcArgs.c_str()); }
                             }
                             else{
-                                  yyerror("Error: Incompatible type for argumnet %d of \'%s\' .\n Note : expected \'%s\' but argument is of type \'%s\'\n     \'%s %s\( %s \)\'",argNo,($1->nodeKey).c_str(),typeB.c_str(),typeA.c_str(),($$->nodeType).c_str(),($1->nodeKey).c_str(),funcArgs.c_str()); 
+                                  yyerror("Error: Incompatible type for argumnet %d of \'%s\' .\n Note : expected \'%s\' but argument is of type \'%s\'\n     \'%s %s\( %s \)\'",argNo,($1->nodeKey).c_str(),typeB.c_str(),typeA.c_str(),($$->nodeType).c_str(),($1->nodeKey).c_str(),funcArgs.c_str());
                             }
                             if((f1!=-1)&&(f2!=-1)){
                                  continue;
@@ -215,22 +243,37 @@ generic_association
                            }else if(f1!=-1){
                                    yyerror("Error: Too many arguments for the function \'%s\'\n    \'%s %s\( %s \)\'",($1->nodeKey).c_str(),($$->nodeType).c_str(),($1->nodeKey).c_str(),funcArgs.c_str());
                                    break;
-                          }else{ break; }                    
+                          }else{ break; }
                   }
-                 }         
-                 
+                       unsigned fT=1;
+                       unsigned carg=1;
+                  while(fT!=-1){
+                          carg++;
+                          fT = currArguments.find_first_of(delim);
+                          if(fT==-1) typeA = currArguments; else{ typeA = currArguments.substr(0,fT); currArguments = currArguments.substr(fT+1);}
+
+                  }
+                  qid t = getTmpSym($$->nodeType);
+                  emit(pair<string, sEntry*>("refParam", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), t, -1);
+                  qid t2 = getTmpSym($$->nodeType);
+                  int k=emit(pair<string, sEntry*>("CALL", NULL), $1->place, pair<string, sEntry*>(to_string(carg), NULL), t2, -1);
+                  $$->place = t2;
+                  $$->bLine =k;
+                  $$->eLine =$1->bLine;
+                 }
+
 	  }
 	  else {
 		  yyerror("Error: Invalid Function call");
 	  }
           currArguments=string("");
-} 
+}
   | postfix_expression '.' IDENTIFIER       {
                                                 temp = terminal($3);
                                                 $$ = nonTerminal("postfix_expression.IDENTIFIER",NULL, $1, temp);
-                             
 
-                                            }    
+
+                                            }
   | postfix_expression PTR_OP IDENTIFIER    {
                                                 temp=terminal($3);
                                                 $$ = nonTerminal($2,NULL, $1, temp);
@@ -241,27 +284,37 @@ generic_association
          if($1->isInit==1) $$->isInit=1;
 	  char* s = postfixExpr($1->nodeType, 6);
 	  if(s){
-		  string as(s); 
+		  string as(s);
 		  $$->nodeType =as;
+                  qid t1 = getTmpSym($$->nodeType);
+                  int k=  emit(pair<string, sEntry*>("++S", lookup("++")), $1->place, pair<string, sEntry*>("", NULL), t1, -1);
+                  $$->place = t1;
+                  $$->bLine = $1->bLine;
+                  $$->eLine = k;
 	  }
 	  else {
 		  yyerror("Error: Increment not defined for this type");
 	  }
 
-                                            } 
+                                            }
   | postfix_expression DEC_OP               {
 	  $$=  nonTerminal($2,NULL, $1,NULL);
           if($1->isInit==1) $$->isInit =1;
 	  char* s = postfixExpr($1->nodeType, 7);
 	  if(s){
-		  string as(s); 
+		  string as(s);
 		  $$->nodeType =as;
+                  qid t1 = getTmpSym($$->nodeType);
+                  int k=emit(pair<string, sEntry*>("--S", lookup("--")), $1->place, pair<string, sEntry*>("", NULL), t1, -1);
+                  $$->place = t1;
+                  $$->bLine = $1->bLine;
+                  $$->eLine = k;
 	  }
 	  else {
 		  yyerror("Error: Decrement not defined for this type");
 	  }
 
-  } 
+  }
   | '(' type_name ')' '{' initializer_list '}' {
 	  $$=  nonTerminal("postfix_expression", NULL, $2, $5);
           if($5->isInit==1) $$->isInit =1;
@@ -269,6 +322,11 @@ generic_association
 	  if(s){
 		  string as(s);
 		  $$->nodeType =as;
+                  $$->place = getTmpSym($$->nodeType);
+                  string t = "\(" + $$->nodeType + "\)";
+                  int k=emit(pair<string, sEntry*>(t, NULL), $5->place, pair<string, sEntry*>("", NULL), $$->place, -1);
+                  $$->bLine = $2->bLine;
+                  $$->eLine = k;
 	  }
 	  else {
 		  yyerror("Error: typecasting error");
@@ -282,6 +340,12 @@ generic_association
 	  if(s){
 		  string as(s);
 		  $$->nodeType =as;
+                  qid t1 = getTmpSym($$->nodeType);
+                  string t = "\(" + $$->nodeType + "\)";
+                  int k=emit(pair<string, sEntry*>(t, NULL), $5->place, pair<string, sEntry*>(",", NULL), t1, -1);
+                  $$->bLine = $2->bLine;
+                  $$->eLine = k;
+                  $$->place = t1;
 	  }
 	  else {
 		  yyerror("Error: typecasting error");
@@ -290,100 +354,164 @@ generic_association
   ;
 
 argument_expression_list
-  : assignment_expression          
+  : assignment_expression
 	  {
 		$$ = $1;
+                int k=emit(pair<string, sEntry*>("param", NULL), $$->place, pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), -1);
+                $$->bLine = $1->bLine;
+                $$->eLine = k;
 		if($1->isInit==1)$$->isInit = 1;
                 currArguments = $1->nodeType;
-          } 
+          }
   | argument_expression_list ',' assignment_expression
 	    {
              $$ = nonTerminal("argument_expression_list",NULL, $1, $3);
+             int k=emit(pair<string, sEntry*>("param", NULL), $3->place, pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), -1);
+             $$->bLine = $1->bLine;
+             $$->eLine = k;
 	     char* a =  argumentExpr($1->nodeType, $3->nodeType, 2);
 		string as(a);
 		$$->nodeType = as;
 		if($1->isInit == 1 && $3->isInit==1) $$->isInit=1;
                 currArguments = currArguments +string(",")+ $3->nodeType;
 
-              } 
+              }
   ;
 
 
 unary_expression
-  : postfix_expression            {$$ = $1;} 
+  : postfix_expression            {$$ = $1;}
   | INC_OP unary_expression       {
-	  $$=  nonTerminal($1, NULL,NULL, $2); 
+	  $$=  nonTerminal($1, NULL,NULL, $2);
 	  if($2->isInit == 1 ) $$->isInit=1;
 	  char* s = postfixExpr($2->nodeType, 6);
 	  if(s){
-		  string as(s); 
+		  string as(s);
 		  $$->nodeType =as;
+                  //===========3AC======================//
+                  qid t1 = getTmpSym($$->nodeType);
+                  int k = emit(pair<string, sEntry*>("++P", lookup("++")), $2->place, pair<string, sEntry*>("", NULL), t1, -1);
+                  $$->place = t1;
+                  $$->bLine = $2->bLine;
+                  $$->eLine =k;
+              //    $$->code =  $2->code + '\n' +\
+                //         $$->nodeKey + string("= ") + "INC_OP" + string(" ") + $2->nodeKey;
+                  //====================================//
 	  }
 	  else {
 		  yyerror("Error: Increment not defined for this type");
 	  }
 
-  } 
+  }
 
   | DEC_OP unary_expression       {
-       	  $$=  nonTerminal($1, NULL,NULL, $2); 
+       	  $$=  nonTerminal($1, NULL,NULL, $2);
 	  if($2->isInit == 1 ) $$->isInit=1;
 	  char* s = postfixExpr($2->nodeType, 7);
 	  if(s){
-		  string as(s); 
+		  string as(s);
 		  $$->nodeType =as;
+                  //===========3AC======================//
+                  qid t1 = getTmpSym($$->nodeType);
+                  int k = emit(pair<string, sEntry*>("--P", lookup("--")), $2->place, pair<string, sEntry*>("", NULL), t1, -1);
+                  $$->place = t1;
+                  $$->bLine =$2->bLine;
+                  $$->eLine =k;
+
+                  //====================================//
 	  }
 	  else {
 		  yyerror("Error: Decrement not defined for this type");
 	  }
 
   }
-  | unary_operator cast_expression { 
+  | unary_operator cast_expression {
 		$$ = nonTerminal("unary_expression", NULL, $1, $2);
 		if( $2->isInit==1) $$->isInit=1;
 		char* a= unaryExpr($1->name, $2->nodeType, 1);
 		if(a){
 		    string as(a);
 		    $$->nodeType= as;
+                  //===========3AC======================//
+                  qid t1 = getTmpSym($$->nodeType);
+                  int k = emit($1->place, $2->place, pair<string, sEntry*>("", NULL), t1, -1);
+                  $$->place = t1;
+                  $$->bLine =$2->bLine;
+                  $$->eLine =k;
+
+                  //====================================//
 		}
 		else{
 		    yyerror("Error: Type inconsistent with operator %s", $1->name.c_str());
 		}
  	}
   | SIZEOF unary_expression       {
-                                $$=  nonTerminal($1, NULL,NULL, $2);
-				$$->nodeType = string("int");
-				$$->isInit=1;
+                $$=  nonTerminal($1, NULL,NULL, $2);
+		$$->nodeType = string("int");
+		$$->isInit=1;
+                //===========3AC======================//
+                  qid t1 = getTmpSym($$->nodeType);
+                  int k = emit(pair<string, sEntry*>("SIZEOF", lookup("sizeof")), $2->place, pair<string, sEntry*>("", NULL), t1, -1);
+                  $$->place = t1;
+                  $$->bLine =$2->bLine;
+                  $$->eLine =k;
 
+                //====================================//
                                    }
   | SIZEOF '(' type_name ')'   {
-                                   $$=  nonTerminal($1, NULL,NULL, $3);
-				   $$->nodeType = string("int");
-				   $$->isInit=1;
+                $$=  nonTerminal($1, NULL,NULL, $3);
+		$$->nodeType = string("int");
+		$$->isInit=1;
+                //===========3AC======================//
+                  qid t1 = getTmpSym($$->nodeType);
+                  int k = emit(pair<string, sEntry*>("SIZEOF", lookup("sizeof")), $3->place, pair<string, sEntry*>("", NULL), t1, -1);
+                  $$->place = t1;
+                  $$->bLine =$3->bLine;
+                  $$->eLine =k;
+
+                //====================================//
                                    }
   | ALIGNOF '(' type_name ')'   {
-	  $$=  nonTerminal($1, NULL,NULL, $3);
-	  $$->nodeType = string("int");
-	  $$->isInit=1;
+		$$=  nonTerminal($1, NULL,NULL, $3);
+		$$->nodeType = string("int");
+		$$->isInit=1;
+                //===========3AC======================//
+                  qid t1 = getTmpSym($$->nodeType);
+                  int k= emit(pair<string, sEntry*>("ALIGNOF", lookup("_Alignof")), $3->place, pair<string, sEntry*>("", NULL), t1, -1);
+                  $$->bLine =$3->bLine;
+                  $$->eLine =k;
+                  $$->place = t1;
+
+                //====================================//
                                    }
   ;
 
 unary_operator
-  : '&'      { $$ = terminal("&");}
-  | '*'      { $$ = terminal("*");}
-  | '+'      { $$ = terminal("+");}
-  | '-'      { $$ = terminal("-");}
-  | '~'      { $$ = terminal("~");}
-  | '!'      { $$ = terminal("!");}
+  : '&'      { $$ = terminal("&"); $$->place = pair<string, sEntry*>("&", lookup("&")); }
+  | '*'      { $$ = terminal("*"); $$->place = pair<string, sEntry*>("*", lookup("*")); }
+  | '+'      { $$ = terminal("+"); $$->place = pair<string, sEntry*>("+", lookup("+")); }
+  | '-'      { $$ = terminal("-"); $$->place = pair<string, sEntry*>("-", lookup("-")); }
+  | '~'      { $$ = terminal("~"); $$->place = pair<string, sEntry*>("~", lookup("~")); }
+  | '!'      { $$ = terminal("!"); $$->place = pair<string, sEntry*>("!", lookup("!")); }
   ;
-      
+
 cast_expression
         : unary_expression        {$$ = $1;}
-        | '(' type_name ')' cast_expression 
+        | '(' type_name ')' cast_expression
 		{
 			$$ = nonTerminal("cast_expression", NULL, $2, $4);
 			$$->nodeType = $2->nodeType;
-			if($4->isInit==1) $$->isInit=1;
+                        if($4->isInit==1) $$->isInit=1;
+                        //=============3AC====================//
+                        qid t1 = getTmpSym($$->nodeType);
+                        string t = "\(" + $$->nodeType + "\)";
+                        int k = emit(pair<string, sEntry*>(t, NULL), $4->place, pair<string, sEntry*>(",", NULL), t1, -1);
+                        $$->bLine = $4->bLine;
+                        $$->eLine =k;
+                        $$->place = t1;
+
+                        //====================================//
+
 		}
         ;
 
@@ -391,14 +519,25 @@ multiplicative_expression
         : cast_expression                                     {$$=$1;}
         | multiplicative_expression '*' cast_expression       {
             char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '*');
-           if(a){ if(strcmp(a,"int")==0){
-               $$=nonTerminal("* int",NULL,$1,$3);
-               $$->nodeType = string("long long");
-	    }
-	    else if (strcmp(a, "float")==0){
-               $$=nonTerminal("* float",NULL,$1,$3);
-               $$->nodeType = string("long double");
-            } }
+           if(a){
+               int k;
+               if(strcmp(a,"int")==0){
+                 $$=nonTerminal("* int",NULL,$1,$3);
+                 $$->nodeType = string("long long");
+                  qid t1 = getTmpSym($$->nodeType);
+                  k=emit(pair<string, sEntry*>("*int", lookup("*")), $1->place, $3->place, t1, -1);
+                  $$->place = t1;
+	       }
+               else if (strcmp(a, "float")==0){
+                 $$=nonTerminal("* float",NULL,$1,$3);
+                 $$->nodeType = string("long double");
+                  qid t1 = getTmpSym($$->nodeType);
+                  k=emit(pair<string, sEntry*>("*float", lookup("*")), $1->place, $3->place, t1, -1);
+                  $$->place = t1;
+               }
+                  $$->eLine =k;
+                  $$->bLine = $1->bLine;
+            }
             else{
                 $$=nonTerminal("*",NULL,$1,$3);
 		yyerror("Error: Incompatible type for * operator");
@@ -407,14 +546,24 @@ multiplicative_expression
         }
         | multiplicative_expression '/' cast_expression       {
             char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '/');
-           if(a){ if(!strcmp(a,"int")){
-               $$=nonTerminal("/ int",NULL,$1,$3);
-               $$->nodeType = string("long long");
-	    }
-	    else if (!strcmp(a,"float")){
-               $$=nonTerminal("/ float",NULL,$1,$3);
-               $$->nodeType = string("long double");
-            } }
+           if(a){int k;
+                if(!strcmp(a,"int")){
+                  $$=nonTerminal("/ int",NULL,$1,$3);
+                  $$->nodeType = string("long long");
+                  qid t1 = getTmpSym($$->nodeType);
+                  k = emit(pair<string, sEntry*>("/int", lookup("/")), $1->place, $3->place, t1, -1);
+                  $$->place = t1;
+	        }
+	        else if (!strcmp(a,"float")){
+                  $$=nonTerminal("/ float",NULL,$1,$3);
+                  $$->nodeType = string("long double");
+                  qid t1 = getTmpSym($$->nodeType);
+                  k = emit(pair<string, sEntry*>("/float", lookup("/")), $1->place, $3->place, t1, -1);
+                  $$->place = t1;
+                }
+                  $$->eLine =k;
+                  $$->bLine = $1->bLine;
+            }
             else{
                $$=nonTerminal("/",NULL,$1,$3);
 		yyerror("Error: Incompatible type for / operator");
@@ -426,12 +575,20 @@ multiplicative_expression
             char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '/');
             if(a){
 		$$->nodeType= string("long long");
+                  //===========3AC======================//
+                  qid t1 = getTmpSym($$->nodeType);
+                  int k =emit(pair<string, sEntry*>("%", lookup("%")), $1->place, $3->place, t1, -1);
+                  $$->eLine =k;
+                  $$->bLine = $1->bLine;
+                  $$->place = t1;
+
+                  //====================================//
 	    }
 	    else {
 		yyerror("Error: Incompatible type for % operator");
-            }	
+            }
 	    if($1->isInit==1 && $3->isInit==1) $$->isInit=1;
-           } 
+           }
         ;
 
 additive_expression
@@ -439,32 +596,53 @@ additive_expression
         | additive_expression '+' multiplicative_expression   {
                 char *a = additiveExpr($1->nodeType,$3->nodeType,'+');
                  char *q=new char();
+                 string p;
                  if(a){string as(a);
-                 string p = string("+ ")+as;
+                 p = string("+ ")+as;
                  strcpy(q,p.c_str());}
                  else q = "+";
                  $$=nonTerminal(q,NULL,$1,$3);
                  if(a){ string as(a);
-                 if(!strcmp(a,"int")) $$->nodeType=string("long long");
-                 else if(!strcmp(a,"float")) $$->nodeType=string("long double");
-                 else $$->nodeType=as; }
+                   if(!strcmp(a,"int")) $$->nodeType=string("long long");
+                   else if(!strcmp(a,"float")) $$->nodeType=string("long double");
+                   else $$->nodeType=as;
+                  //===========3AC======================//
+                   qid t1 = getTmpSym($$->nodeType);
+                  int k =  emit(pair<string, sEntry*>(p, lookup("+")), $1->place, $3->place, t1, -1);
+                   $$->place = t1;
+                  $$->eLine =k;
+                  $$->bLine = $1->bLine;
+
+                  //====================================//
+                 }
                  else {
                        yyerror("Error: Incompatible type for + operator");
-                      } 
+                      }
 		 if($1->isInit==1 && $3->isInit==1) $$->isInit=1;
+
                  }
         | additive_expression '-' multiplicative_expression   {
                  char *a = additiveExpr($1->nodeType,$3->nodeType,'-');
 		 char *q = new char();
+                 string p;
 		 if(a){ string as(a);
-                         string p =string("- ")+as;
+                         p =string("- ")+as;
                          strcpy(q,p.c_str());
                       }
 		  $$=nonTerminal(q,NULL,$1,$3);
 	          if(a){ string as(a);
                    if(!strcmp(a,"int")) $$->nodeType=string("long long");
                    else if(!strcmp(a,"float")) $$->nodeType=string("long double");
-			 else $$->nodeType=as; }
+			 else $$->nodeType=as;
+                  //===========3AC======================//
+                   qid t1 = getTmpSym($$->nodeType);
+                   int k = emit(pair<string, sEntry*>(p, lookup("-")), $1->place, $3->place, t1, -1);
+                   $$->place = t1;
+                  $$->eLine =k;
+                  $$->bLine = $1->bLine;
+
+                  //====================================//
+                 }
 		 else {
 			 yyerror("Error: Incompatible type for - operator");
 		 }
@@ -478,8 +656,15 @@ shift_expression
   : additive_expression     {$$ = $1;}
   | shift_expression LEFT_OP additive_expression {
                           $$ = nonTerminal2("<<", $1,NULL, $3);
-                          char* a = shiftExpr($1->nodeType,$3->nodeType);                        if(a){ 
+                          char* a = shiftExpr($1->nodeType,$3->nodeType);                        if(a){
                             $$->nodeType = $1->nodeType;
+                         //===========3AC======================//
+                          qid t1 = getTmpSym($$->nodeType);
+                          int k = emit(pair<string, sEntry*>("LEFT_OP", lookup("<<")), $1->place, $3->place, t1, -1);
+                          $$->place = t1;
+                          $$->eLine =k;
+                          $$->bLine = $1->bLine;
+                        //====================================//
                            }
                        else{
                           yyerror("Error: Invalid operands to binary <<");
@@ -491,6 +676,13 @@ shift_expression
                        char* a = shiftExpr($1->nodeType,$3->nodeType);
                           if(a){
                                 $$->nodeType = $1->nodeType;
+                                //===========3AC======================//
+                                 qid t1 = getTmpSym($$->nodeType);
+                                 int k = emit(pair<string, sEntry*>("RIGHT_OP", lookup(">>")), $1->place, $3->place, t1, -1);
+                                 $$->place = t1;
+                                 $$->eLine =k;
+                                 $$->bLine = $1->bLine;
+                                //====================================//
                                }
                         else{
                           yyerror("Error: Invalid operands to binary <<");
@@ -502,38 +694,63 @@ shift_expression
 
 relational_expression
   : shift_expression     {$$ = $1;}
-  | relational_expression '<' shift_expression   
+  | relational_expression '<' shift_expression
       {                $$ = nonTerminal("<", NULL, $1, $3);
                     char* a=relationalExpr($1->nodeType,$3->nodeType,"<");
-                 if(a) { if(!strcmp(a,"bool")) $$->nodeType = string("bool");
-                    else if(!strcmp(a,"Bool")){
-                       $$->nodeType = string("bool");
+                 if(a) {
+                         if(!strcmp(a,"bool")) $$->nodeType = string("bool");
+                        else if(!strcmp(a,"Bool")){
+                        $$->nodeType = string("bool");
                        yyerror("Warning: comparison between pointer and integer");}
-                    }else {
+                       //===========3AC======================//
+                        qid t1 = getTmpSym($$->nodeType);
+                        int k =  emit(pair<string, sEntry*>("<", lookup("<")), $1->place, $3->place, t1, -1);
+                        $$->place = t1;
+                        $$->eLine =k;
+                        $$->bLine = $1->bLine;
+                       //====================================//
+                    }
+                  else {
                          yyerror("Error: invalid operands to binary <");
                     }
-                  if($1->isInit==1 && $3->isInit==3) $$->isInit=1; 
-        
+                  if($1->isInit==1 && $3->isInit==3) $$->isInit=1;
+
       }
-  | relational_expression '>' shift_expression   
+  | relational_expression '>' shift_expression
  {                $$ = nonTerminal(">", NULL, $1, $3);
-                  char* a=relationalExpr($1->nodeType,$3->nodeType,">");                 if(a){ if(!strcmp(a,"bool")) $$->nodeType = string("bool");
-                    else if(!strcmp(a,"Bool")){
-                       $$->nodeType = string("bool");
-                       yyerror("Warning: comparison between pointer and integer");}
+                  char* a=relationalExpr($1->nodeType,$3->nodeType,">");                
+                   if(a){ if(!strcmp(a,"bool")) $$->nodeType = string("bool");
+                          else if(!strcmp(a,"Bool")){
+                           $$->nodeType = string("bool");
+                          yyerror("Warning: comparison between pointer and integer");}
+                         //===========3AC======================//
+                           qid t1 = getTmpSym($$->nodeType);
+                           int k = emit(pair<string, sEntry*>(">", lookup(">")), $1->place, $3->place, t1, -1);
+                           $$->place = t1;
+                           $$->eLine =k;
+                           $$->bLine = $1->bLine;
+                       //====================================//
                     } else {
                          yyerror("Error: invalid operands to binary >");
                     }
                   if($1->isInit==1 && $3->isInit==3) $$->isInit=1;
 
   }
-  | relational_expression LE_OP shift_expression  
+  | relational_expression LE_OP shift_expression
    {
                                   $$ = nonTerminal2("<=", $1,NULL, $3);
-                    char* a=relationalExpr($1->nodeType,$3->nodeType,"<=");               if(a){if(!strcmp(a,"bool")) $$->nodeType = string("bool");
-                    else if(!strcmp(a,"Bool")){
-                       $$->nodeType = string("bool");
-                       yyerror("Warning: comparison between pointer and integer");}
+                    char* a=relationalExpr($1->nodeType,$3->nodeType,"<=");              
+                    if(a){if(!strcmp(a,"bool")) $$->nodeType = string("bool");
+                       else if(!strcmp(a,"Bool")){
+                        $$->nodeType = string("bool");
+                        yyerror("Warning: comparison between pointer and integer");}
+                         //===========3AC======================//
+                           qid t1 = getTmpSym($$->nodeType);
+                          int k= emit(pair<string, sEntry*>("LE_OP", lookup("<=")), $1->place, $3->place, t1, -1);
+                           $$->place = t1;
+                           $$->eLine =k;
+                           $$->bLine = $1->bLine;
+                       //====================================//
                     }else {
                          yyerror("Error: invalid operands to binary <=");
                     }
@@ -542,26 +759,41 @@ relational_expression
   | relational_expression GE_OP shift_expression
     {
                        $$ = nonTerminal2(">=", $1,NULL, $3);
-                  char* a=relationalExpr($1->nodeType,$3->nodeType,">=");            if(a){  if(!strcmp(a,"bool")) $$->nodeType = string("bool");
-                 else if(!strcmp(a,"Bool")){
-                 $$->nodeType = string("bool");
-              yyerror("Warning: comparison between pointer and integer");}
+                  char* a=relationalExpr($1->nodeType,$3->nodeType,">=");      
+              if(a){  if(!strcmp(a,"bool")) $$->nodeType = string("bool");
+                      else if(!strcmp(a,"Bool")){
+                        $$->nodeType = string("bool");
+                         yyerror("Warning: comparison between pointer and integer");}
+                         //===========3AC======================//
+                           qid t1 = getTmpSym($$->nodeType);
+                           int k = emit(pair<string, sEntry*>("GE_OP", lookup(">=")), $1->place, $3->place, t1, -1);
+                           $$->place = t1;
+                           $$->eLine =k;
+                           $$->bLine = $1->bLine;
+                       //====================================//
                     }else {
                          yyerror("Error: invalid operands to binary >=");
                     }
                   if($1->isInit==1 && $3->isInit==3) $$->isInit=1;
-     }
+      }
   ;
 
 equality_expression
   : relational_expression   {$$ = $1;}
   | equality_expression EQ_OP relational_expression {
-                                                    $$ = nonTerminal2("==", $1, NULL, $3); 
+                                                    $$ = nonTerminal2("==", $1, NULL, $3);
                     char* a = equalityExpr($1->nodeType,$3->nodeType);
                     if(a){ if(!strcmp(a,"true")){
                             yyerror("Warning: Comparision between pointer and Integer");
-                            } 
+                            }
                             $$->nodeType = "bool";
+                         //===========3AC======================//
+                           qid t1 = getTmpSym($$->nodeType);
+                           int k = emit(pair<string, sEntry*>("EQ_OP", lookup("\=\=")), $1->place, $3->place, t1, -1);
+                           $$->place = t1;
+                           $$->eLine =k;
+                           $$->bLine = $1->bLine;
+                       //====================================//
                     }
                    else{ yyerror("Error:Invalid operands to binary =="); }
                  if($1->isInit==1 && $3->isInit==3) $$->isInit=1;
@@ -571,8 +803,15 @@ equality_expression
                       char* a = equalityExpr($1->nodeType,$3->nodeType);
                     if(a){   if(!strcmp(a,"true")){
                             yyerror("Warning: Comparision between pointer and Integer");
-                            } 
+                            }
                             $$->nodeType = "bool";
+                         //===========3AC======================//
+                           qid t1 = getTmpSym($$->nodeType);
+                           int k = emit(pair<string, sEntry*>("NE_OP", lookup("!=")), $1->place, $3->place, t1, -1);
+                           $$->place = t1;
+                           $$->eLine =k;
+                           $$->bLine = $1->bLine;
+                       //====================================//
                     }
                    else{ yyerror("Error:Invalid operands to binary !="); }
                  if($1->isInit==1 && $3->isInit==3) $$->isInit=1;
@@ -587,9 +826,16 @@ and_expression
                if(a){
                   if(!strcmp(a,"true")) { $$->nodeType = string("bool"); }
                   else{   $$->nodeType = string("long long");}
+                         //===========3AC======================//
+                           qid t1 = getTmpSym($$->nodeType);
+                           int k= emit(pair<string, sEntry*>("&", lookup("&")), $1->place, $3->place, t1, -1);
+                           $$->place = t1;
+                           $$->eLine =k;
+                           $$->bLine = $1->bLine;
+                       //====================================//
                }
                else {
-                 yyerror("Error:Invalid operands to the binary &");       
+                 yyerror("Error:Invalid operands to the binary &");
                }
                  if($1->isInit==1 && $3->isInit==3) $$->isInit=1;
           }
@@ -603,6 +849,13 @@ exclusive_or_expression
                if(a){
                   if(!strcmp(a,"true")) { $$->nodeType = string("bool"); }
                   else{   $$->nodeType = string("long long");}
+                         //===========3AC======================//
+                           qid t1 = getTmpSym($$->nodeType);
+                           int k = emit(pair<string, sEntry*>("^", lookup("^")), $1->place, $3->place, t1, -1);
+                           $$->place = t1;
+                           $$->eLine =k;
+                           $$->bLine = $1->bLine;
+                       //====================================//
                }
                else {
                  yyerror("Error:Invalid operands to the binary ^");
@@ -620,6 +873,13 @@ inclusive_or_expression
                if(a){
                   if(!strcmp(a,"true")) { $$->nodeType = string("bool"); }
                   else{   $$->nodeType = string("long long");}
+                         //===========3AC======================//
+                           qid t1 = getTmpSym($$->nodeType);
+                           int k =  emit(pair<string, sEntry*>("|", lookup("|")), $1->place, $3->place, t1, -1);
+                           $$->place = t1;
+                           $$->eLine =k;
+                           $$->bLine = $1->bLine;
+                       //====================================//
                }
                else {
                  yyerror("Error:Invalid operands to the binary |");
@@ -632,52 +892,87 @@ inclusive_or_expression
 logical_and_expression
   : inclusive_or_expression { $$ = $1;}
   | logical_and_expression AND_OP inclusive_or_expression  {
-                          $$ = nonTerminal2("&&", $1,NULL, $3);       
+                          $$ = nonTerminal2("&&", $1,NULL, $3);
                         $$->nodeType == string("bool");
+                         //===========3AC======================//
+                           qid t1 = getTmpSym($$->nodeType);
+                           int k = emit(pair<string, sEntry*>("AND_OP", lookup("&&")), $1->place, $3->place, t1, -1);
+                           $$->place = t1;
+                           $$->eLine =k;
+                           $$->bLine = $1->bLine;
+                       //====================================//
                  if($1->isInit==1 && $3->isInit==3) $$->isInit=1;
                                                            }
   ;
 
 logical_or_expression
-  : logical_and_expression  { $$ = $1;}
+  : logical_and_expression  { $$ = $1; tempQid = $$->place;}
   | logical_or_expression OR_OP logical_and_expression  {
                                 $$ = nonTerminal2("||", $1,NULL, $3);
                  if($1->isInit==1 && $3->isInit==3) $$->isInit=1;
                         $$->nodeType == string("bool");
+                         //===========3AC======================//
+                           qid t1 = getTmpSym($$->nodeType);
+                           int k = emit(pair<string, sEntry*>("OR_OP", lookup("||")), $1->place, $3->place, t1, -1);
+                           $$->place = t1;
+                           $$->eLine =k;
+                           $$->bLine = $1->bLine;
+                           tempQid = $$->place;
+                       //====================================//
                                                         }
   ;
 
 conditional_expression
   : logical_or_expression  { $$ = $1;}
-  | logical_or_expression '?' expression ':' conditional_expression  {
-            $$ = nonTerminal2("conditional_expression", $1, $3, $5);
-            char* a = conditionalExpr($3->nodeType,$5->nodeType);
+  | logical_or_expression '?' E4 expression ':' E5 conditional_expression  {
+            $$ = nonTerminal2("conditional_expression", $1, $4, $7);
+            char* a = conditionalExpr($4->nodeType,$7->nodeType);
             if(a){
                  string as(a);
                  $$->nodeType = as;
+                 qid t1 = getTmpSym($$->nodeType);
+                 emit(pair<string, sEntry*>("GOTO", lookup("goto")), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL) , pair<string, sEntry*>("", NULL), 0);
+                 backPatch($1->eLine+1,$4->bLine);
+                 backPatch($1->eLine+2,$7->bLine);
+                 backPatch($4->eLine+1,$7->eLine+2);
+                 backPatch($7->eLine+1,$7->eLine+2);
                  }
             else
                 {
                  yyerror("Error:Type mismatch in conditional expression");
                 }
-           if($1->isInit==1 && $3->isInit==3 && $5->isInit) $$->isInit=1;
-    
+           if($1->isInit==1 && $4->isInit==3 && $7->isInit) $$->isInit=1;
+
           }
+  ;
+
+E4 
+  : %empty         {
+                     emit(pair<string, sEntry*>("GOTO", lookup("goto")), pair<string, sEntry*>("IF", lookup("if")), tempQid , pair<string, sEntry*>("", NULL), 0);
+                     emit(pair<string, sEntry*>("GOTO", lookup("goto")), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL) , pair<string, sEntry*>("", NULL), 0);
+                   }
+  ;
+
+
+E5 
+  : %empty         {
+                     emit(pair<string, sEntry*>("GOTO", lookup("goto")), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL) , pair<string, sEntry*>("", NULL), 0);
+                   }
   ;
 
 assignment_expression
   : conditional_expression  { $$ = $1;}
-  | unary_expression assignment_operator assignment_expression  
+  | unary_expression assignment_operator assignment_expression
              { $$ = nonTerminal2($2, $1,NULL, $3);
                char* a = assignmentExpr($1->nodeType,$3->nodeType,$2);
                if(a){
                     if(!strcmp(a,"true")){ $$->nodeType = $1->nodeType; }
                     if(!strcmp(a,"warning")){ $$->nodeType = $1->nodeType;
-                         yyerror("Warning: Assignment with incompatible pointer type"); 
+                         yyerror("Warning: Assignment with incompatible pointer type");
                          }
                     }
                 else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($3->nodeType).c_str()); }
-     if($1->exprType==3){ if($3->isInit==1) update_isInit($1->nodeKey); } 
+     if($1->exprType==3){ if($3->isInit==1) update_isInit($1->nodeKey); }
              }
   ;
 
@@ -720,18 +1015,18 @@ expression
   | expression ',' assignment_expression   { $$ = nonTerminal("expression",NULL, $1, $3); $$->nodeType = string("void"); }
   ;
 
-constant_expression 
+constant_expression
   : conditional_expression  { $$ = $1;}
   ;
 
 declaration
-  : declaration_specifiers ';'  { typeName=string(""); $$ = $1;}
+  : declaration_specifiers ';'  { typeName=string("");}
   | declaration_specifiers init_declarator_list ';'  { typeName=string(""); $$ = nonTerminal("declaration", NULL, $1, $2);}
   | static_assert_declaration   { typeName=string("");$$ = $1;}
   ;
 
 declaration_specifiers
-  : storage_class_specifier declaration_specifiers { $$ = nonTerminal("declaration_specifiers", NULL, $1, $2);}  
+  : storage_class_specifier declaration_specifiers { $$ = nonTerminal("declaration_specifiers", NULL, $1, $2);}
   | storage_class_specifier      { $$ = $1;}
   | type_specifier declaration_specifiers   { $$ = nonTerminal("declaration_specifiers", NULL, $1, $2);}
   | type_specifier              { $$ = $1;}
@@ -749,33 +1044,33 @@ init_declarator_list
   ;
 
 init_declarator
-  : declarator '=' initializer  { 
+  : declarator '=' initializer  {
                 $$ = nonTerminal("=", NULL, $1, $3);
                     if($1->exprType==1||$1->exprType==15){ char *t=new char();
-                      strcpy(t,($1->nodeType).c_str()); 
+                      strcpy(t,($1->nodeType).c_str());
                       char *key =new char();
                       strcpy(key,($1->nodeKey).c_str());
-                if(scopeLookup($1->nodeKey)){ 
-                     yyerror("Error: Redeclaration of \'%s\'",key); 
+                if(scopeLookup($1->nodeKey)){
+                     yyerror("Error: Redeclaration of \'%s\'",key);
                 }else if($1->nodeType==string("void")){
                      yyerror("Error: Variable or field \'%s\' declared void",key);
-                } 
+                }
                 else { if($$->exprType==15) { insertSymbol(*curr,key,t,($3->exprType*$1->iVal),0,1); }
                         insertSymbol(*curr,key,t,$1->size,0,1); }
-                } 
+                }
                }
-  | declarator     {  
+  | declarator     {
                      $$= $1;
                      if($1->exprType==1){ char *t=new char();
                      strcpy(t,($1->nodeType).c_str());
                      char *key =new char();
                      strcpy(key,($1->nodeKey).c_str());
-                  if(scopeLookup($1->nodeKey)){ 
+                  if(scopeLookup($1->nodeKey)){
                         yyerror("Error: redeclaration of \'%s\'",key);
                   }else if($1->nodeType==string("void")){
                      yyerror("Error: Variable or field \'%s\' declared void",key);
                   }else {  insertSymbol(*curr,key,t,$1->size,0,0);}
-                     } 
+                     }
                }
   ;
 
@@ -848,7 +1143,7 @@ type_specifier
   | IMAGINARY {   if(typeName==string(""))typeName = string($1);
                    else typeName = typeName+string(" ")+string($1);
                   $$=terminal($1);
-              }   
+              }
 
 
   | atomic_type_specifier  {$$ = $1;yyerror("Error : Not implemented atomic_type_specifier");}
@@ -871,12 +1166,12 @@ struct_or_union_specifier
   ;
 
 struct_or_union
-  : STRUCT   { 
+  : STRUCT   {
               $$=terminal($1);
               }
   | UNION     {
-                $$=terminal($1); 
-              }  
+                $$=terminal($1);
+              }
   ;
 
 struct_declaration_list
@@ -909,10 +1204,10 @@ struct_declarator
 	;
 
 enum_specifier
-	: ENUM '{' enumerator_list '}' {   
+	: ENUM '{' enumerator_list '}' {
                                        	  $$ = nonTerminal("enum_specifier", $1, NULL, $3);
                                        }
-	| ENUM '{' enumerator_list ',' '}' {    
+	| ENUM '{' enumerator_list ',' '}' {
 						$$ = nonTerminal1("enum_specifier", $1, $3,$4);
 					   }
 	| ENUM IDENTIFIER '{' enumerator_list '}'  {
@@ -933,7 +1228,7 @@ enumerator_list
 	| enumerator_list ',' enumerator {$$ = nonTerminal("enumerator_list", NULL, $1,  $3);}
 	;
 
-enumerator	
+enumerator
 	: enumeration_constant '=' constant_expression {$$ = nonTerminal("=",NULL, $1,  $3);}
 	| enumeration_constant {$$ = $1;}
 	;
@@ -985,16 +1280,16 @@ declarator
                if($2->exprType==1){$$->nodeType=$2->nodeType+$1->nodeType;
                $$->nodeKey = $2->nodeKey;
                $$->exprType=1;}
-               if($2->exprType==2){ funcName = $2->nodeKey; funcType = $2->nodeType; }   
+               if($2->exprType==2){ funcName = $2->nodeKey; funcType = $2->nodeType; }
                 char* a = new char();
                 strcpy(a,($$->nodeType).c_str());$$->size = getSize(a);
          }
-	| direct_declarator {$$ = $1;if($1->exprType==2){ funcName=$1->nodeKey; funcType = $1->nodeType; } 
+	| direct_declarator {$$ = $1;if($1->exprType==2){ funcName=$1->nodeKey; funcType = $1->nodeType; }
           }
 	;
 
 direct_declarator
-	: IDENTIFIER{ 
+	: IDENTIFIER{
                     $$=terminal($1);$$->exprType=1;$$->nodeKey=string($1);$$->nodeType=typeName; char* a =new char();
                 strcpy(a,typeName.c_str()); $$->size = getSize(a);
 			   }
@@ -1006,36 +1301,36 @@ direct_declarator
 	| direct_declarator '[' ']' {$$ = nonTerminalSquareB("direct_declarator", $1);
                       if($1->exprType==1){ $$->exprType=1;
                                           $$->nodeKey=$1->nodeKey;
-                                          $$->nodeType=$1->nodeType+string("*");}   
+                                          $$->nodeType=$1->nodeType+string("*");}
                           char* a = new char();
                           strcpy(a,($$->nodeType).c_str());
                           $$->size = getSize(a);
                           strcpy(a,($1->nodeType).c_str());
                           $$->exprType=15;
                           $$->iVal=getSize(a);
-                               } 
+                               }
 	| direct_declarator '[' '*' ']' {$$ = nonTerminalFourChild("direct_declarator", $1, NULL, NULL, NULL, $3);
           if($1->exprType==1){ $$->exprType=1;
                                           $$->nodeKey=$1->nodeKey;
                                           $$->nodeType=$1->nodeType+string("*");}
- 
+
                           char* a = new char();
                           strcpy(a,($$->nodeType).c_str());
                           $$->size = getSize(a);
                             }
-	| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'{ 
+	| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'{
 				temp = terminal($3);
 				$$ = nonTerminalFourChild("direct_declarator", $1, temp, $4, $5, NULL);
            if($1->exprType==1){ $$->exprType=1;
                                           $$->nodeKey=$1->nodeKey;
                                           $$->nodeType=$1->nodeType+string("*");}
-             
+
                  if($5->iVal){ $$->size =  $1->size*$5->iVal; }
                  else { char* a = new char();
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a); }
                           }
-	| direct_declarator '[' STATIC assignment_expression ']' { 
+	| direct_declarator '[' STATIC assignment_expression ']' {
 				temp = terminal($3);
 				$$ = nonTerminalFourChild("direct_declarator", $1, temp, $4, NULL, NULL);
         if($1->exprType==1){ $$->exprType=1;
@@ -1054,10 +1349,10 @@ direct_declarator
                           char* a = new char();
                           strcpy(a,($$->nodeType).c_str());
                           $$->size = getSize(a);
-   
+
          }
-	| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']' { 
-				
+	| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']' {
+
                           temp = terminal($4);
 				$$ = nonTerminalFourChild("direct_declarator", $1, $3, temp, $5, NULL);
           if($1->exprType==1){ $$->exprType=1;
@@ -1067,7 +1362,7 @@ direct_declarator
                  else { char* a = new char();
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a); }
-                          
+
 }
 	| direct_declarator '[' type_qualifier_list assignment_expression ']'{$$ = nonTerminalFourChild("direct_declarator", $1, $3, $4, NULL, NULL);
           if($1->exprType==1){ $$->exprType=1;
@@ -1100,7 +1395,7 @@ direct_declarator
 
         }
 	| direct_declarator '(' E3 parameter_type_list ')'
-         { 
+         {
          $$ = nonTerminal("direct_declarator", NULL, $1, $4);
           if($1->exprType==1){ $$->nodeKey=$1->nodeKey;
                            $$->exprType=2;
@@ -1115,26 +1410,26 @@ direct_declarator
 	| direct_declarator '(' E3 ')'
          {
           $$ = nonTerminalRoundB("direct_declarator", $1);
-          if($1->exprType==1){ 
+          if($1->exprType==1){
                           $$->nodeKey=$1->nodeKey;
                           insertFuncArguments($1->nodeKey,string(""));
                           $$->exprType=2;
                           funcArguments = string("");
-                          }  
+                          }
                        $$->nodeType=$1->nodeType;
                          char* a = new char();
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a);
-                     } 
-	| direct_declarator '(' E3 identifier_list ')' {$$ = nonTerminal("direct_declarator", NULL, $1, $4); 
+                     }
+	| direct_declarator '(' E3 identifier_list ')' {$$ = nonTerminal("direct_declarator", NULL, $1, $4);
                          char* a = new char();
                         strcpy(a,($$->nodeType).c_str());
-                        $$->size = getSize(a);                            
+                        $$->size = getSize(a);
           }
 	;
 
-E3 
-   : %empty                 {   typeName =string("");  
+E3
+   : %empty                 {   typeName =string("");
                           funcArguments = string("");
                            paramTable();  }
     ;
@@ -1154,7 +1449,7 @@ type_qualifier_list
 
 
 parameter_type_list
-	: parameter_list ',' ELLIPSIS { 
+	: parameter_list ',' ELLIPSIS {
                                         funcArguments = funcArguments+string(",...");
 					temp = terminal($3);
 					$$=nonTerminal("parameter_type_list",NULL,$1,temp);
@@ -1178,9 +1473,9 @@ parameter_declaration
                    else {  insertSymbol(*curr,key,t,$2->size,0,1);}
                 if(funcArguments==string(""))funcArguments=($2->nodeType);
                else funcArguments= funcArguments+string(",")+($2->nodeType);
-                     } 
-           
-   
+                     }
+
+
          $$=nonTerminal("parameter_declaration",NULL,$1,$2);}
 	| declaration_specifiers abstract_declarator {typeName=string("");$$=nonTerminal("parameter_declaration",NULL,$1,$2);}
 	| declaration_specifiers {typeName=string("");$$=$1;}
@@ -1228,16 +1523,16 @@ direct_abstract_declarator
 	| '[' assignment_expression ']'{$$ = $2;}
 	| direct_abstract_declarator '[' ']' {$$ = nonTerminal("direct_abstract_declarator" , "[ ]", $1,NULL);}
 	| direct_abstract_declarator '[' '*' ']' {$$ = nonTerminal("direct_abstract_declarator", "\[ \* \]", $1, NULL);}
-	| direct_abstract_declarator '[' STATIC type_qualifier_list assignment_expression ']'{ 
+	| direct_abstract_declarator '[' STATIC type_qualifier_list assignment_expression ']'{
 				temp = terminal($3);
 				$$ = nonTerminalFourChild("direct_abstract_declarator", $1, temp, $4, $5, NULL);
                           }
-	| direct_abstract_declarator '[' STATIC assignment_expression ']'{ 
+	| direct_abstract_declarator '[' STATIC assignment_expression ']'{
 				temp = terminal($3);
 				$$ = nonTerminalFourChild("direct_abstract_declarator", $1, temp, $4, NULL, NULL);
                           }
 	| direct_abstract_declarator '[' type_qualifier_list assignment_expression ']' {$$ = nonTerminal2("direct_abstract_declarator", $1, $3, $4);}
-	| direct_abstract_declarator '[' type_qualifier_list STATIC assignment_expression ']'{ 
+	| direct_abstract_declarator '[' type_qualifier_list STATIC assignment_expression ']'{
 				temp = terminal($4);
 				$$ = nonTerminalFourChild("direct_abstract_declarator", $1, $3, temp,  $5, NULL);
                           }
@@ -1262,8 +1557,8 @@ initializer_list
            char* a =validAssign($1->nodeType,$2->nodeType);
                if(a){
                     if(!strcmp(a,"true")){ ; }
-                    if(!strcmp(a,"warning")){ 
-                         yyerror("Warning: Assignment with incompatible pointer type"); 
+                    if(!strcmp(a,"warning")){
+                         yyerror("Warning: Assignment with incompatible pointer type");
                          }
                     }
                 else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($2->nodeType).c_str()); }
@@ -1277,19 +1572,19 @@ initializer_list
                if(a){
                     if(!strcmp(a,"true")){ ; }
                     if(!strcmp(a,"warning")){ ;
-                         yyerror("Warning: Assignment with incompatible pointer type"); 
+                         yyerror("Warning: Assignment with incompatible pointer type");
                          }
-                     }  
+                     }
                 else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($3->nodeType).c_str(),($4->nodeType).c_str()); }
             a =validAssign($1->nodeType,$4->nodeType);
                if(a){
                     if(!strcmp(a,"true")){ ; }
                     if(!strcmp(a,"warning")){ ;
-                         yyerror("Warning: Assignment with incompatible pointer type"); 
+                         yyerror("Warning: Assignment with incompatible pointer type");
                          }
-                     }  
+                     }
                 else{ yyerror("Error: Incompatible types when initializing type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($4->nodeType).c_str()); }
-                    
+
             $$->exprType =$1->exprType+1;
           }
 	| initializer_list ',' initializer {
@@ -1299,16 +1594,16 @@ initializer_list
                if(a){
                     if(!strcmp(a,"true")){ ; }
                     if(!strcmp(a,"warning")){ ;
-                         yyerror("Warning: Assignment with incompatible pointer type"); 
+                         yyerror("Warning: Assignment with incompatible pointer type");
                          }
-                     }  
+                     }
                 else{ yyerror("Error: Incompatible types when initializing type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($3->nodeType).c_str()); }
            $$->exprType = $1->exprType+1;
-        }          
+        }
 	;
 
 designation
-	: designator_list '='  { 
+	: designator_list '='  {
            $$ = nonTerminal("designation", "=", $1 ,NULL);
            $$->nodeType = $1->nodeType=1;
            }
@@ -1360,16 +1655,16 @@ labeled_statement
         ;
 
 compound_statement
-	: '{' '}'   {isFunc=0;$$ = terminal("{ }");} 
+	: '{' '}'   {isFunc=0;$$ = terminal("{ }");}
 	| E1  block_item_list '}'  {if(blockSym){ string s($1);
-                                    s=s+string(".csv");   
+                                    s=s+string(".csv");
                                     string u($1);
                                     printSymTables(curr,s);
-                                    updateSymTable(u); blockSym--; 
+                                    updateSymTable(u); blockSym--;
                                  } $$ = $2;
                                }
 	;
-E1 
+E1
     :  '{'       { if(isFunc==0) {symNumber++;
                         symFileName = /*string("symTableFunc")+to_string(funcSym)*/funcName+string("Block")+to_string(symNumber);
                         scope=S_BLOCK;
@@ -1380,8 +1675,8 @@ E1
                         blockSym++;
                         }
                        isFunc=0;
-              } 
-   
+              }
+
     ;
 
 block_item_list
@@ -1466,26 +1761,26 @@ external_declaration
 	;
 
 function_definition
-	: declaration_specifiers declarator E2 declaration_list compound_statement 
+	: declaration_specifiers declarator E2 declaration_list compound_statement
          {      typeName=string("");
-                string s($3);   
+                string s($3);
                 string u = s+string(".csv");
-                printSymTables(curr,u); 
-                symNumber=0; 
+                printSymTables(curr,u);
+                symNumber=0;
                updateSymTable(s);
                 $$ = nonTerminalFourChild("function_definition", $1, $2, $4, $5, NULL);
          }
 	| declaration_specifiers declarator E2 compound_statement  {
               typeName=string("");
               string s($3);string u =s+string(".csv");
-              printSymTables(curr,u); 
+              printSymTables(curr,u);
               symNumber=0;
               updateSymTable(s);
               $$ = nonTerminal2("function_definition", $1, $2, $4);
              }
 	;
 
-E2 
+E2
     : %empty                { typeName=string("");scope = S_FUNC;
                                          isFunc = 1;
                                          funcSym++;
@@ -1560,7 +1855,7 @@ int main(int argc,char **argv){
   }
   fclose(duplicate);
   fclose(yyin);
-  yyin=fopen(filename,"r"); 
+  yyin=fopen(filename,"r");
   // default output file
   if(fileflag == 0)
   digraph =fopen("digraph.gv","w");
@@ -1568,8 +1863,9 @@ int main(int argc,char **argv){
   stInitialize();
   graphInitialization();
   yyparse();
-  
+
   graphEnd();
+  display3ac();
   symFileName = "GST.csv";
   printSymTables(curr,symFileName);
   printFuncArguments();
@@ -1583,7 +1879,7 @@ void yyerror(char *s,...){
   vsnprintf(buffer,MAX_STR_LEN-1,s,args);
   va_end(args);
 
-  
+
   int count = 1;
   if(s=="syntax error") count = 2;
   fprintf(stderr,"%s : %d :: %s\n",filename,yylineno,buffer);
@@ -1609,5 +1905,5 @@ else
 {
     //file doesn't exist
 }
-  
+
 }

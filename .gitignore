@@ -10,6 +10,7 @@ errors
 tag.txt
 src/symTable2.cpp
 src/practice.cpp
+src/practise.cpp
 src/a.out
 duplicate.txt
 digraph.png

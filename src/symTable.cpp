@@ -51,7 +51,7 @@ void stInitialize(){
     funcArgumentMap.insert(pair<string,string>(string("strlen"),string("void*")));
 
 }
-void paramTable(){   
+void paramTable(){
       offsetNo++;
       offsetNext[offsetNo]=offsetG[offsetGNo];
       makeSymTable(string("Next"),S_FUNC,string(""));
@@ -85,7 +85,7 @@ void fprintStruct(sEntry *a, FILE* file){
    // cout << a->type << " " << "";
     fprintf(file, "%s,",a->type.c_str());
     switch(switchItem[a->type]){
-        case 1:{ 
+        case 1:{
   //               cout << *tmp << endl;
                  fprintf(file, " %lld,%lld,%d\n", a->size, a->offset,a->is_init);
                  break;
@@ -120,10 +120,10 @@ void makeSymTable(string name,int type,string funcType){
   if(funcType!="12345") f =string("FUNC_")+funcType; else f = string("Block");
   if(is_next==1){ insertSymbol(*tParent[curr],name,f,0,10,1);
                   offsetNo--;
-                  // updateOffset(name,string("Next")); 
-                  (*tParent[curr]).erase(string("Next"));   
+                  // updateOffset(name,string("Next"));
+                  (*tParent[curr]).erase(string("Next"));
        }
-  else { 
+  else {
    blockNo++;
    symTable* myTable = new symTable;
     insertSymbol(*curr,name,f,0,0,1);
@@ -226,7 +226,7 @@ void updateOffset(string key1,string key2){
    if(temp){
        temp->offset = o;
    }
-} 
+}
 */
 void insertFuncArguments(string a,string b){
      funcArgumentMap.insert(pair<string,string>(a,b));
@@ -238,7 +238,7 @@ void printFuncArguments(){
         fprintf(file,"%s,",it.first.c_str());
         fprintf(file,"%s\n",it.second.c_str());
      }
-     fclose(file);     
+     fclose(file);
 }
 void printSymTables(symTable* a, string filename) {
   FILE* file = fopen(filename.c_str(), "w");
@@ -247,12 +247,12 @@ void printSymTables(symTable* a, string filename) {
 
   for(auto it: *a ){
     fprintf( file,"%s,", it.first.c_str());
-    fprintStruct(it.second, file);  
+    fprintStruct(it.second, file);
   }
   fclose(file);
 }
 void addKeywords(){
-/*
+
 //-------------------inserting keywords-------------------------------------------
   { string *keyword = new string(); *keyword = "AUTO"; insertSymbol(*curr,"auto","Keyword",8,0,1); } // auto keyword
   { string *keyword = new string(); *keyword = "BREAK"; insertSymbol(*curr,"break","Keyword",8,0,1); } // break keyword
@@ -352,7 +352,7 @@ void addKeywords(){
   {string *oper = new string();  *oper = "^"; insertSymbol(*curr,"^","Operator",8,0,1); } // ^ operator
   {string *oper = new string();  *oper = "|"; insertSymbol(*curr,"|","Operator",8,0,1); } // | operator
   {string *oper = new string();  *oper = "?"; insertSymbol(*curr,"?","Operator",8,0,1); } // ? operator
-*/
+
 //////////////// basic printf, scanf, strlen :: to get the code running /////////
   insertSymbol(*curr,"printf","FUNC_ void",8,0,1); //
   insertSymbol(*curr,"scanf","FUNC_ void",8,0,1); //

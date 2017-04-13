@@ -24,7 +24,7 @@ node *nonTerminal(char *str,char *op, node *l, node *r) {
   int op_id = getNodeId();
   char *op_str = op;
   if(op){
-    
+
     fprintf(digraph, "\t%lu [label=\"%s\"];\n", op_id, op_str);
   }
   fprintf(digraph, "\t%lu [label=\"%s\"];\n", n->id, n->name.c_str());
@@ -42,11 +42,11 @@ node *nonTerminal1(char *str,char *op1, node *l,char *op2) {
   int op2_id = getNodeId();
   char *op2_str = op2;
   if(op1){
-    
+
     fprintf(digraph, "\t%lu [label=\"%s\"];\n", op1_id, op1_str);
   }
   if(op2){
-    
+
     fprintf(digraph, "\t%lu [label=\"%s\"];\n", op2_id, op2_str);
   }
   fprintf(digraph, "\t%lu [label=\"%s\"];\n", n->id, n->name.c_str());
