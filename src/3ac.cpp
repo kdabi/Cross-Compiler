@@ -39,8 +39,26 @@ int getNextIndex(){
   return emittedCode.size();
 }
 
-void backPatch(int p, int i){
-  emittedCode[i].stmtNum = p;
+void backPatch(list<int> li, int p){
+  for(int i=0; i<li.size(); ++i){
+    unsigned N = i;
+    if (li.size() > N)
+    {
+      std::list<int>::iterator it = li.begin();
+      std::advance(it, N);
+      emittedCode[*it].stmtNum = p;
+  }
+}
+return;
+}
+
+void setResult(int a, qid p){
+  emittedCode[a].res = p;
+  return;
+}
+
+void setId1(int a, qid p){
+  emittedCode[a].id1 = p;
   return;
 }
 
@@ -51,17 +69,18 @@ void display3ac(){
   return;
 }
 
+
 void display(quad q, int i){
   if(q.stmtNum==-1){
     cout << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
-          setw(15) << q.id1.first << " " <<
-          setw(15) << q.id2.first << " " <<
-          setw(15) << q.res.first << '\n';
+      setw(15) << q.id1.first << " " <<
+      setw(15) << q.id2.first << " " <<
+      setw(15) << q.res.first << '\n';
   }
   else{
-    cout << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
-          setw(15) << q.id1.first << " " <<
-          setw(15) << q.id2.first << " " <<
-          setw(15) << q.stmtNum << '\n';
+    cout << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
+      setw(15) << q.id1.first << " " <<
+      setw(15) << q.id2.first << " " <<
+      setw(15) << q.stmtNum << "---" << '\n';
   }
 }

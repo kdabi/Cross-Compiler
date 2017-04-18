@@ -21,9 +21,8 @@ typedef struct {
   //===============//
 //  string code;
   qid place;
-  int bLine;
-  int eLine;
   list<int> truelist;
+  list<int> nextlist;
   list<int> falselist;
   //===============//
   int id;

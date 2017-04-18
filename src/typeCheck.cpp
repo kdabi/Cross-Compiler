@@ -209,7 +209,7 @@ char* additiveExpr(string type1,string type2,char op){
 	if(isInt(type1)|| isFloat(type1)){
 		if(isInt(type2)||isFloat(type2)){
 			if(isInt(type1)&&isInt(type2)){ a="int"; }
-			else { a="float"; }
+			else { a="real"; }
 			return a;
 		} 
 	}

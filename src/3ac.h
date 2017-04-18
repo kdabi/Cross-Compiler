@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <list>
 #include <iomanip>
 #include "symTable.h"
 using namespace std;
@@ -19,7 +20,9 @@ extern vector <quad> emittedCode;
 string getTmpVar();
 pair<string, sEntry*> getTmpSym(string type);
 int emit (qid id1, qid id2, qid op, qid  res, int stmtNum);
-void backPatch(int p, int i);
+void backPatch(list<int> li, int i);
 void display3ac();
-void display(quad q, int i);
+void display(quad q, int p);
 int getNextIndex();
+void setResult(int a, qid p);
+void setId1(int a, qid p);
