@@ -80,7 +80,7 @@ qid tempQid;
 %type <ptr> direct_declarator type_qualifier_list parameter_type_list identifier_list parameter_list parameter_declaration
 %type <ptr> abstract_declarator direct_abstract_declarator designation designator_list designator labeled_statement compound_statement expression_statement declaration_list
 %type <ptr> selection_statement iteration_statement jump_statement block_item_list block_item external_declaration translation_unit function_definition statement jump_statement_error
-%type <ptr> M N
+%type <number> M N
 
 %%
 
@@ -962,7 +962,7 @@ M1
 
 M
  : %empty {
-           $$->iVal = getNextIndex();
+           $$ = getNextIndex();
  }
  ;
 
@@ -978,7 +978,7 @@ logical_and_expression
                                 $3->truelist.push_back(k);
                                 $3->falselist.push_back(k1);
                         }
-                           backPatch($1->truelist,$2->iVal);
+                           backPatch($1->truelist,$2);
                            $$->truelist = $3->truelist;
                            $1->falselist.merge($3->falselist);
                            $$->falselist = $1->falselist;
@@ -1014,7 +1014,7 @@ logical_or_expression
                                 $3->truelist.push_back(k);
                                 $3->falselist.push_back(k1);
                         }
-                         backPatch($1->falselist, $2->iVal);
+                         backPatch($1->falselist, $2);
                          $$->falselist = $3->falselist;
                          $1->truelist.merge($3->truelist);
                          $$->truelist = $1->truelist;
@@ -1040,7 +1040,7 @@ M3
 N
  : %empty {
                 emit(pair<string, sEntry*>("=", lookup("=")), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), -1);
-                $$->iVal = emit(pair<string, sEntry*>("GOTO", lookup("goto")), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), 0);
+                $$ = emit(pair<string, sEntry*>("GOTO", lookup("goto")), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), 0);
  }
  ;
 
@@ -1048,7 +1048,7 @@ conditional_expression
   : logical_or_expression  { $$ = $1;}
   | M3 M  expression ':' N  conditional_expression  {
             $$ = nonTerminal2("conditional_expression", $1, $3, $6);
-            char* a = conditionalExpr($3->nodeType,$5->nodeType);
+            char* a = conditionalExpr($3->nodeType,$6->nodeType);
             if(a){
                  string as(a);
                  $$->nodeType = as;
@@ -1056,11 +1056,11 @@ conditional_expression
                     qid t = getTmpSym($$->nodeType);
                     emit(pair<string, sEntry*>("=", lookup("=")), $6->place, pair<string, sEntry*>("", NULL), t, -1);
                     int k = emit(pair<string, sEntry*>("GOTO", lookup("goto")), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), 0);
-                     backPatch($1->truelist , $2->iVal);                   
-                     backPatch($1->falselist , $5->iVal+1);     
-                     setId1($5->iVal-1 , $3->place);              
-                     setResult($5->iVal-1 , t);     
-                     $$->nextlist.push_back($5->iVal);         
+                     backPatch($1->truelist , $2);                   
+                     backPatch($1->falselist , $5+1);     
+                     setId1($5-1 , $3->place);              
+                     setResult($5-1 , t);     
+                     $$->nextlist.push_back($5);         
                      $$->nextlist.push_back(k);
                      $$->place = t;         
                  //--------------------------------------------------//
@@ -1069,7 +1069,7 @@ conditional_expression
                 {
                  yyerror("Error:Type mismatch in conditional expression");
                 }
-           if($1->isInit==1 && $3->isInit==1 && $5->isInit==1) $$->isInit=1;
+           if($1->isInit==1 && $3->isInit==1 && $6->isInit==1) $$->isInit=1;
 
           }
   ;
