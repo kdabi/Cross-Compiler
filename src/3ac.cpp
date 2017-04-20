@@ -1,5 +1,5 @@
 #include "3ac.h"
-
+#include "typeCheck.h"
 using namespace std;
 using std::setw;
 
@@ -58,29 +58,104 @@ void setResult(int a, qid p){
 }
 
 void setId1(int a, qid p){
-  emittedCode[a].id1 = p;
-  return;
+	emittedCode[a].id1 = p;
+	return;
+}
+
+void assignmentExpression(char *o, string type, string type1, string type3, qid place1, qid place3){
+	qid t = place3;
+        qid t2;
+	string op;
+	string op1;
+        int a=0;int b=0;
+        if(!strcmp(o,"=")){
+              a=1;
+        }
+	if(!strcmp(o,"*=")){
+		op = "*";
+                op1 = "*";
+		t = getTmpSym(type);
+	}
+	else if(!strcmp(o,"/=")){
+		op = "/";
+                op1 = "/";
+		t = getTmpSym(type);
+	}
+	else if(!strcmp(o,"+=")){
+		op = "+";
+                op1 = "+";
+		t = getTmpSym(type);
+	}
+	else if(!strcmp(o,"-=")){
+		op = "-";
+                op1 = "-";
+		t = getTmpSym(type);
+	}
+	if(isInt(type1) && isInt(type3)){
+		op += "int";
+	        if(strcmp(o,"=")) emit(pair<string, sEntry*>(op, lookup(op1)), place1, place3, t, -1);
+	}
+	else if(isFloat(type1) && isInt(type3)){
+		t2 = getTmpSym(type);
+		emit(pair<string, sEntry*>("inttoreal",NULL), place3,pair<string, sEntry*>("",NULL),t2,-1);
+		op += "real";
+		if(strcmp(o,"=")) emit(pair<string, sEntry*>(op, lookup(op1)), place1, t2, t, -1); 
+                b=1;
+	}
+	else if(isFloat(type3) && isInt(type1)){
+		t2 = getTmpSym(type);
+		emit(pair<string, sEntry*>("realtoint",NULL),place3,pair<string, sEntry*>("",NULL),t2,-1);
+		op += "int";
+		if(strcmp(o,"=")) emit(pair<string, sEntry*>(op, lookup(op1)), place1, t2, t, -1);
+                 b=1;
+	}
+	else if(isFloat(type3) && isFloat(type1)){
+		op += "real";
+		if(strcmp(o,"=")) emit(pair<string, sEntry*>(op, lookup(op1)), place1, place3, t, -1);
+	}
+
+
+	if(!(a &&b )) emit(pair<string, sEntry*>("=", lookup("=")),  t, pair<string, sEntry*>("", NULL), place1, -1);
+	else emit(pair<string, sEntry*>("=", lookup("=")),  t2, pair<string, sEntry*>("", NULL), place1, -1);
+
+return;
+
+}
+void assignment2(char *o, string type, string type1, string type3, qid place1, qid place3){
+	qid t = getTmpSym(type);
+	string op;
+	string op1;
+        if(!strcmp(o,"%=")) op = "%";
+        else if(!strcmp(o,"^=")) op = "^";
+        else if(!strcmp(o,"|=")) op = "|";
+        else if(!strcmp(o,"&=")) op = "&";
+        op1 = op;
+        if(!strcmp(o,"<<=")){ op="LEFT_OP"; op1="<<"; }
+        if(!strcmp(o,">>=")){ op="RIGHT_OP"; op1=">>"; }
+        emit(pair<string, sEntry*>(op, lookup(op1)), place1, place3, t, -1);
+	emit(pair<string, sEntry*>("=", lookup("=")),  t, pair<string, sEntry*>("", NULL), place1, -1);
+
 }
 
 void display3ac(){
-  for(int i = 0; i<emittedCode.size(); ++i)  {
-    display(emittedCode[i], i);
-  }
-  return;
+	for(int i = 0; i<emittedCode.size(); ++i)  {
+		display(emittedCode[i], i);
+	}
+	return;
 }
 
 
 void display(quad q, int i){
-  if(q.stmtNum==-1){
-    cout << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
-      setw(15) << q.id1.first << " " <<
-      setw(15) << q.id2.first << " " <<
-      setw(15) << q.res.first << '\n';
-  }
-  else{
-    cout << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
-      setw(15) << q.id1.first << " " <<
-      setw(15) << q.id2.first << " " <<
-      setw(15) << q.stmtNum << "---" << '\n';
-  }
+	if(q.stmtNum==-1){
+		cout << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
+			setw(15) << q.id1.first << " " <<
+			setw(15) << q.id2.first << " " <<
+			setw(15) << q.res.first << '\n';
+	}
+	else{
+		cout << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
+			setw(15) << q.id1.first << " " <<
+			setw(15) << q.id2.first << " " <<
+			setw(15) << q.stmtNum << "---" << '\n';
+	}
 }

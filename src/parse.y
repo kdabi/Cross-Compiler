@@ -538,7 +538,7 @@ multiplicative_expression
            if(a){
                int k;
                if(strcmp(a,"int")==0){
-                 $$=nonTerminal("* int",NULL,$1,$3);
+                 $$=nonTerminal("*int",NULL,$1,$3);
                  $$->nodeType = string("long long");
                  //---------------3AC----------------//
                   qid t1 = getTmpSym($$->nodeType);
@@ -548,7 +548,7 @@ multiplicative_expression
                 //--------------3AC--------------------//
 	       }
                else if (strcmp(a, "float")==0){
-                 $$=nonTerminal("* float",NULL,$1,$3);
+                 $$=nonTerminal("*float",NULL,$1,$3);
                  $$->nodeType = string("long double");
                  //-------------3AC---------------------//
                   qid t1 = getTmpSym($$->nodeType);
@@ -582,7 +582,7 @@ multiplicative_expression
             char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '/');
            if(a){int k;
                 if(!strcmp(a,"int")){
-                  $$=nonTerminal("/ int",NULL,$1,$3);
+                  $$=nonTerminal("/int",NULL,$1,$3);
                   $$->nodeType = string("long long");
                   //---------------3AC----------------------//
                   qid t1 = getTmpSym($$->nodeType);
@@ -592,7 +592,7 @@ multiplicative_expression
                  //--------------3AC------------------------//
 	        }
 	        else if (!strcmp(a,"float")){
-                  $$=nonTerminal("/ float",NULL,$1,$3);
+                  $$=nonTerminal("/float",NULL,$1,$3);
                   $$->nodeType = string("long double");
                  //-------------3AC---------------------//
                   qid t1 = getTmpSym($$->nodeType);
@@ -648,7 +648,7 @@ additive_expression
                  char *q=new char();
                  string p;
                  if(a){string as(a);
-                 p = string("+ ")+as;
+                 p = string("+")+as;
                  strcpy(q,p.c_str());}
                  else q = "+";
                  $$=nonTerminal(q,NULL,$1,$3);
@@ -686,7 +686,7 @@ additive_expression
 		 char *q = new char();
                  string p;
 		 if(a){ string as(a);
-                         p =string("- ")+as;
+                         p =string("-")+as;
                          strcpy(q,p.c_str());
                       }
 		  $$=nonTerminal(q,NULL,$1,$3);
@@ -1081,10 +1081,22 @@ assignment_expression
              { $$ = nonTerminal2($2, $1,NULL, $3);
                char* a = assignmentExpr($1->nodeType,$3->nodeType,$2);
                if(a){
-                    if(!strcmp(a,"true")){ $$->nodeType = $1->nodeType; }
+                    if(!strcmp(a,"true")){ $$->nodeType = $1->nodeType; 
+                      }
                     if(!strcmp(a,"warning")){ $$->nodeType = $1->nodeType;
                          yyerror("Warning: Assignment with incompatible pointer type");
                          }
+                      //-------------3AC------------------------------------//
+		     if(!strcmp($2,"=") || !strcmp($2,"+=") || !strcmp($2,"-=") || !strcmp($2,"*=") || !strcmp($2,"/="))assignmentExpression($2, $$->nodeType,$1->nodeType, $3->nodeType, $1->place, $3->place)	;
+		     else assignment2($2, $$->nodeType,$1->nodeType, $3->nodeType, $1->place, $3->place);
+                       $$->place = $1->place;
+                       $3->nextlist.merge($1->nextlist);
+                       $$->nextlist= $3->nextlist;
+                       $3->truelist.merge($1->truelist);
+                       $$->truelist= $3->truelist;
+                       $3->falselist.merge($1->falselist);
+                       $$->falselist= $3->falselist;
+                     //-------------------------------------------------------//
                     }
                 else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($3->nodeType).c_str()); }
      if($1->exprType==3){ if($3->isInit==1) update_isInit($1->nodeKey); }
@@ -1127,7 +1139,13 @@ assignment_operator
 
 expression
   : assignment_expression    { $$ = $1;}
-  | expression ',' assignment_expression   { $$ = nonTerminal("expression",NULL, $1, $3); $$->nodeType = string("void"); }
+  | expression ',' M assignment_expression   { 
+                 $$ = nonTerminal("expression",NULL, $1, $4); $$->nodeType = string("void"); 
+                 //--------------3AC--------------------//
+                    backPatch($1->nextlist,$3);
+                    $$->nextlist = $4->nextlist;
+                 //-------------------------------------//
+                 }
   ;
 
 constant_expression
@@ -1136,7 +1154,11 @@ constant_expression
 
 declaration
   : declaration_specifiers ';'  { typeName=string("");}
-  | declaration_specifiers init_declarator_list ';'  { typeName=string(""); $$ = nonTerminal("declaration", NULL, $1, $2);}
+  | declaration_specifiers init_declarator_list ';'  { typeName=string(""); $$ = nonTerminal("declaration", NULL, $1, $2); 
+                                                      //----------------3AC-----------------------//
+                                                        $$->nextlist = $2->nextlist;
+                                                      //-----------------------------------------//
+                                                     }
   | static_assert_declaration   { typeName=string("");$$ = $1;}
   ;
 
@@ -1155,12 +1177,17 @@ declaration_specifiers
 
 init_declarator_list
   : init_declarator    { $$ = $1;}
-  | init_declarator_list ',' init_declarator  { $$ = nonTerminal("init_declaration_list",NULL, $1, $3);}
+  | init_declarator_list ',' M init_declarator  { $$ = nonTerminal("init_declaration_list",NULL, $1, $4);
+                                               //-----------3AC------------------//
+                                                 backPatch($1->nextlist, $3);
+                                                 $$->nextlist = $4->nextlist;
+                                               //--------------------------------//
+                                              }
   ;
 
 init_declarator
-  : declarator '=' initializer  {
-                $$ = nonTerminal("=", NULL, $1, $3);
+  : declarator '=' M initializer  {
+                $$ = nonTerminal("=", NULL, $1, $4);
                     if($1->exprType==1||$1->exprType==15){ char *t=new char();
                       strcpy(t,($1->nodeType).c_str());
                       char *key =new char();
@@ -1170,8 +1197,22 @@ init_declarator
                 }else if($1->nodeType==string("void")){
                      yyerror("Error: Variable or field \'%s\' declared void",key);
                 }
-                else { if($$->exprType==15) { insertSymbol(*curr,key,t,($3->exprType*$1->iVal),0,1); }
-                        insertSymbol(*curr,key,t,$1->size,0,1); }
+                else { if($$->exprType==15) { insertSymbol(*curr,key,t,($4->exprType*$1->iVal),0,1); }
+                        insertSymbol(*curr,key,t,$1->size,0,1); 
+                        //----------------- 3AC ------------------------//
+                             char *a = validAssign($1->nodeType, $4->nodeType); 
+                             if(a){
+                                    if(strcmp(a,"true")){ yyerror("Warning: Invalid assignment of \'%s\' to \'%s\' ",$1->nodeType.c_str(),$4->nodeType.c_str()); }                    
+		             assignmentExpression("=", $1->nodeType,$1->nodeType, $4->nodeType, $1->place, $4->place);
+                             $$->place = $1->place; 
+                             backPatch($1->nextlist, $3);
+                             $$->nextlist = $4->nextlist;
+                              }
+                              else { yyerror("Error: Invalid assignment of \'%s\' to \'%s\' ",$1->nodeType.c_str(),$4->nodeType.c_str()); }                        
+                           $$->place = pair<string, sEntry*>($1->nodeKey, lookup($1->nodeKey));
+
+                        //-----------------------------------------------//
+                     }
                 }
                }
   | declarator     {
@@ -1185,6 +1226,7 @@ init_declarator
                   }else if($1->nodeType==string("void")){
                      yyerror("Error: Variable or field \'%s\' declared void",key);
                   }else {  insertSymbol(*curr,key,t,$1->size,0,0);}
+                           $$->place = pair<string, sEntry*>($1->nodeKey, lookup($1->nodeKey));
                      }
                }
   ;
@@ -1398,8 +1440,16 @@ declarator
                if($2->exprType==2){ funcName = $2->nodeKey; funcType = $2->nodeType; }
                 char* a = new char();
                 strcpy(a,($$->nodeType).c_str());$$->size = getSize(a);
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
          }
-	| direct_declarator {$$ = $1;if($1->exprType==2){ funcName=$1->nodeKey; funcType = $1->nodeType; }
+	| direct_declarator {$$ = $1;if($1->exprType==2){ funcName=$1->nodeKey; funcType = $1->nodeType; 
+                          
+                            }
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);           
+                        //-------------------------------------------------------//
           }
 	;
 
@@ -1407,10 +1457,16 @@ direct_declarator
 	: IDENTIFIER{
                     $$=terminal($1);$$->exprType=1;$$->nodeKey=string($1);$$->nodeType=typeName; char* a =new char();
                 strcpy(a,typeName.c_str()); $$->size = getSize(a);
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
 			   }
 	| '(' declarator ')' {$$ = $2;
                            if($2->exprType==1){ $$->exprType=1;
                                           $$->nodeKey=$2->nodeKey;
+                                        //------------------3AC---------------------------------//
+                                         $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                                       //-------------------------------------------------------//
                                           $$->nodeType=$2->nodeType;}
                            }
 	| direct_declarator '[' ']' {$$ = nonTerminalSquareB("direct_declarator", $1);
@@ -1423,6 +1479,9 @@ direct_declarator
                           strcpy(a,($1->nodeType).c_str());
                           $$->exprType=15;
                           $$->iVal=getSize(a);
+                                  //------------------3AC---------------------------------//
+                                   $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                                 //-------------------------------------------------------//
                                }
 	| direct_declarator '[' '*' ']' {$$ = nonTerminalFourChild("direct_declarator", $1, NULL, NULL, NULL, $3);
           if($1->exprType==1){ $$->exprType=1;
@@ -1432,6 +1491,9 @@ direct_declarator
                           char* a = new char();
                           strcpy(a,($$->nodeType).c_str());
                           $$->size = getSize(a);
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
                             }
 	| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'{
 				temp = terminal($3);
@@ -1444,6 +1506,9 @@ direct_declarator
                  else { char* a = new char();
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a); }
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
                           }
 	| direct_declarator '[' STATIC assignment_expression ']' {
 				temp = terminal($3);
@@ -1455,6 +1520,9 @@ direct_declarator
                  else { char* a = new char();
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a); }
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
 
                           }
 	| direct_declarator '[' type_qualifier_list '*' ']' {$$ = nonTerminalFourChild("direct_declarator", $1, $3, NULL, NULL, $4);
@@ -1464,6 +1532,9 @@ direct_declarator
                           char* a = new char();
                           strcpy(a,($$->nodeType).c_str());
                           $$->size = getSize(a);
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
 
          }
 	| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']' {
@@ -1477,6 +1548,9 @@ direct_declarator
                  else { char* a = new char();
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a); }
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
 
 }
 	| direct_declarator '[' type_qualifier_list assignment_expression ']'{$$ = nonTerminalFourChild("direct_declarator", $1, $3, $4, NULL, NULL);
@@ -1487,6 +1561,9 @@ direct_declarator
                  else { char* a = new char();
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a); }
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
 
 }
 	| direct_declarator '[' type_qualifier_list ']' {$$ = nonTerminal("direct_declarator", NULL, $1, $3);
@@ -1497,6 +1574,9 @@ direct_declarator
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a);
            }
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
 
          }
 	| direct_declarator '[' assignment_expression ']' {$$ = nonTerminal("direct_declarator", NULL, $1, $3);
@@ -1507,6 +1587,9 @@ direct_declarator
                  else { char* a = new char();
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a); }
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
 
         }
 	| direct_declarator '(' E3 parameter_type_list ')'
@@ -1521,6 +1604,9 @@ direct_declarator
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a);
                            }
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
                }
 	| direct_declarator '(' E3 ')'
          {
@@ -1535,11 +1621,17 @@ direct_declarator
                          char* a = new char();
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a);
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
                      }
 	| direct_declarator '(' E3 identifier_list ')' {$$ = nonTerminal("direct_declarator", NULL, $1, $4);
                          char* a = new char();
                         strcpy(a,($$->nodeType).c_str());
                         $$->size = getSize(a);
+                        //------------------3AC---------------------------------//
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        //-------------------------------------------------------//
           }
 	;
 
