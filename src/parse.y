@@ -70,7 +70,7 @@ qid tempQid;
 %right <str> '&' '=' '!' '~' ':' '?'
 
 %type <ptr> multiplicative_expression additive_expression cast_expression primary_expression expression assignment_expression postfix_expression unary_expression shift_expression relational_expression equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_or_expression logical_and_expression conditional_expression constant_expression
-%type <ptr> constant string generic_selection enumeration_constant M1 M2 M3 M4
+%type <ptr> constant string generic_selection enumeration_constant M1 M2 M3 M4 M5 M6 M7
 %type <ptr> generic_assoc_list generic_association type_name argument_expression_list initializer_list
 %type <ptr> unary_operator
 %type <ptr> declaration declaration_specifiers
@@ -80,7 +80,7 @@ qid tempQid;
 %type <ptr> direct_declarator type_qualifier_list parameter_type_list identifier_list parameter_list parameter_declaration
 %type <ptr> abstract_declarator direct_abstract_declarator designation designator_list designator labeled_statement compound_statement expression_statement declaration_list
 %type <ptr> selection_statement iteration_statement jump_statement block_item_list block_item external_declaration translation_unit function_definition statement jump_statement_error
-%type <number> M N
+%type <number> M N GOTO_emit
 
 %%
 
@@ -1881,19 +1881,58 @@ statement
         | iteration_statement  {$$ = $1;}
         | jump_statement  {$$ = $1;}
         ;
+M5
+  : CASE constant_expression ':' {
+                                  $$=$2;
+                                //-----------3AC--------------------//
+                                 qid t = getTmpSym("bool");
+                                 int k = emit(pair<string, sEntry*>("EQ_OP", lookup("\=\=")),pair<string, sEntry*>("", NULL), $2->place, t, -1);     
+                                 int k1 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("IF", lookup("if")), t, pair<string, sEntry*>("", NULL ),0);
+                                 int k2 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
+                                 $$->caselist.push_back(k);
+                                 $$->truelist.push_back(k1);
+                                 $$->falselist.push_back(k2);
+                               //-----------------------------------//
+                           
+
+   }
+  ;
 
 labeled_statement
-        : IDENTIFIER ':' statement {
+        : IDENTIFIER ':' M statement {
                                 temp = terminal($1);
-                                $$ = nonTerminal("labeled_statement", NULL, temp, $3);
+                                $$ = nonTerminal("labeled_statement", NULL, temp, $4);
+                                //===========3AC======================//
+                                 if(!gotoIndexStorage($1, $3)){
+                                     yyerror("ERROR:\'%s\' is already defined", $1);
+                                    
+                                }  $$->nextlist = $4->nextlist;
+                                   $$->caselist = $4->caselist;
+                                   $$->continuelist = $4->continuelist;
+                                   $$->breaklist = $4->breaklist;
+                                //=====================================//
+
                            }
-        | CASE constant_expression ':' statement {
-                                temp = terminal($1);
-                                $$ = nonTerminal2("labeled_statement", temp, $2, $4);
+        | M5 M statement {
+                                temp = terminal("case");
+                                $$ = nonTerminal2("labeled_statement", temp, $1, $3);
+                                //-----------3AC--------------------//
+                                  backPatch($1->truelist, $2);
+                                  $3->nextlist.merge($1->falselist);
+                                  $$->breaklist = $3->breaklist;
+                                  $$->nextlist = $3->nextlist;
+                                  $$->caselist = $1->caselist;
+                                  $$->continuelist=$3->continuelist;
+                               //-----------------------------------//
                            }
         | DEFAULT ':' statement {
                                 temp = terminal($1);
                                 $$ = nonTerminal("labeled_statement", NULL, temp, $3);
+                               //---------3AC-----------------------//
+                                 $$->breaklist= $3->breaklist;
+                                 $$->nextlist = $3->nextlist;
+                                 $$->continuelist=$3->continuelist;
+                               //----------------------------------//
                            }
         ;
 
@@ -1924,7 +1963,18 @@ E1
 
 block_item_list
 	: block_item  {$$ = $1;}
-	| block_item_list block_item  {$$ = nonTerminal("block_item_list", NULL, $1, $2);}
+	| block_item_list M block_item  {$$ = nonTerminal("block_item_list", NULL, $1, $3); 
+                                      //---------------3AC--------------------//
+                                         backPatch($1->nextlist, $2);
+                                         $$->nextlist = $3->nextlist;
+                                         $1->caselist.merge($3->caselist);
+                                         $$->caselist = $1->caselist;
+                                         $1->continuelist.merge($3->continuelist);
+                                         $1->breaklist.merge($3->breaklist);
+                                         $$->continuelist = $1->continuelist;
+                                         $$->breaklist = $1->breaklist;
+                                      //----------------------------------------//                            
+                                      }
 	;
 
 block_item
@@ -1938,36 +1988,165 @@ expression_statement
 	| expression ';' {$$ =  $1 ;}
 	;
 
+M4
+  :  IF '(' expression ')' {
+                        if($3->truelist.begin()==$3->truelist.end()){
+                            int k = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("IF", lookup("if")), $3->place, pair<string, sEntry*>("", NULL ),0);
+                            int k1 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
+                            $3->truelist.push_back(k);
+                            $3->falselist.push_back(k1);
+                           
+                        }
+                        $$ = $3;
+  }
+  ;
+
+GOTO_emit
+   : %empty {
+             
+                           $$ = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
+   }
+   ;
+
 selection_statement
-        : IF '(' expression ')' statement ELSE statement {
-                                                           $$ = nonTerminal2("IF (expr) stmt ELSE stmt", $3, $5, $7);
+        : M4 M statement GOTO_emit ELSE M statement {
+                                                           $$ = nonTerminal2("IF (expr) stmt ELSE stmt", $1, $3, $7);
+                                                          //----------3AC---------------------//
+                                                            backPatch($1->truelist, $2);
+                                                            backPatch($1->falselist, $6);
+                                                            $3->nextlist.push_back($4);
+                                                            $3->nextlist.merge($7->nextlist);
+                                                            $$->nextlist=$3->nextlist;
+                                                            $3->breaklist.merge($7->breaklist);
+                                                            $$->breaklist = $3->breaklist;
+                                                            $3->continuelist.merge($7->continuelist);
+                                                            $$->continuelist = $3->continuelist;
+                                                         //-----------------------------------//
                                                          }
-        | IF '(' expression ')' statement {
-                                           $$ = nonTerminal2("IF (expr) stmt", NULL, $3, $5);
+        | M4 M statement {
+                                           $$ = nonTerminal2("IF (expr) stmt", NULL, $1, $3);
+                                           //---------------3AC-------------------//
+                                               backPatch($1->truelist, $2);
+                                               $3->nextlist.merge($1->falselist);
+                                               $$->nextlist= $3->nextlist;
+                                               $$->continuelist = $3->continuelist;
+                                               $$->breaklist = $3->breaklist;
+                                           //------------------------------------//
+                                         
                                          }
         | SWITCH '(' expression ')' statement{
                                            $$ = nonTerminal2("SWITCH (expr) stmt", NULL, $3, $5);
+                                           //--------------3AC---------------------------//
+                                              setListId1($5->caselist, $3->place);
+                                              $5->nextlist.merge($5->breaklist);
+                                              $$->nextlist= $5->nextlist;
+                                              $$->continuelist= $5->continuelist;
+                                          //---------------------------------------------//
                                          }
         ;
 
+
+M6
+  :   expression  {
+                        if($1->truelist.begin()==$1->truelist.end()){
+                            int k = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("IF", lookup("if")), $1->place, pair<string, sEntry*>("", NULL ),0);
+                            int k1 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
+                            $1->truelist.push_back(k);
+                            $1->falselist.push_back(k1);
+                           
+                        }
+                        $$ = $1;
+  }
+  ;
+
+
+M7
+  :   expression_statement  {
+                        if($1->truelist.begin()==$1->truelist.end()){
+                            int k = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("IF", lookup("if")), $1->place, pair<string, sEntry*>("", NULL ),0);
+                            int k1 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
+                            $1->truelist.push_back(k);
+                            $1->falselist.push_back(k1);
+                           
+                        }
+                        $$ = $1;
+  }
+  ;
+
 iteration_statement
-        : WHILE '(' expression ')' statement  {
-                                           $$ = nonTerminal2("WHILE (expr) stmt", NULL, $3, $5);
+        : WHILE '(' M M6 ')' M statement GOTO_emit {
+                                           $$ = nonTerminal2("WHILE (expr) stmt", NULL, $4, $7);
+                                           //-----------3AC------------------//
+                                             backPatch($4->truelist, $6);
+                                             $7->continuelist.push_back($8);
+                                             backPatch($7->continuelist, $3);
+                                             backPatch($7->nextlist, $3);
+                                             $$->nextlist = $4->falselist;
+                                             $$->nextlist.merge($7->breaklist);
+                                           //--------------------------------//
+
                                          }
-        | DO statement WHILE '(' expression ')' ';'{
-                                                     $$ = nonTerminal2("DO stmt WHILE (expr)", NULL, $2, $5);
+        | DO M  statement  WHILE '(' M  M6 ')' ';'{
+                                                     $$ = nonTerminal2("DO stmt WHILE (expr)", NULL, $3, $7);
+                                                   //--------3AC-------------------------//
+                                                      backPatch($7->truelist, $2); 
+                                                      backPatch($3->continuelist, $6);
+                                                      backPatch($3->nextlist, $6);
+                                                      $7->falselist.merge($3->breaklist);
+                                                      $$->nextlist = $7->falselist;  
+                                                   //-----------------------------------//
                                                    }
-        | FOR '(' expression_statement expression_statement ')' statement  {
-                                           $$ = nonTerminal2("FOR (expr_stmt expr_stmt) stmt", $3, $4, $6);
+        | FOR '(' expression_statement M M7 ')' M statement GOTO_emit  {
+                                           $$ = nonTerminal2("FOR (expr_stmt expr_stmt) stmt", $3, $5, $8);
+                                           //-------------3AC-------------------//
+                                             backPatch($3->nextlist, $4);
+                                             backPatch($5->truelist, $7);
+                                             $5->falselist.merge($8->breaklist);
+                                             $$->nextlist = $5->falselist;
+                                             $8->nextlist.merge($8->continuelist);
+                                             $8->nextlist.push_back($9);
+                                             backPatch($8->nextlist, $4 );
+                                          //------------------------------------//
                                          }
-        | FOR '(' expression_statement expression_statement expression ')' statement {
-                                           $$ = nonTerminalFiveChild("FOR (expr_stmt expr_stmt expr) stmt", NULL, $3, $4, $5, $7);
+        | FOR '(' expression_statement M M7 M expression GOTO_emit ')' M statement GOTO_emit {
+                                           $$ = nonTerminalFiveChild("FOR (expr_stmt expr_stmt expr) stmt", NULL, $3, $5, $7, $11);
+                                           //-------------3AC-------------------//
+                                             backPatch($3->nextlist, $4);
+                                             backPatch($5->truelist, $10);
+                                             $5->falselist.merge($11->breaklist);
+                                             $$->nextlist = $5->falselist;
+                                             $11->nextlist.merge($11->continuelist);
+                                             $11->nextlist.push_back($12);
+                                             backPatch($11->nextlist, $6 );
+                                             $7->nextlist.push_back($8);
+                                             backPatch($7->nextlist, $4);
+                                          //------------------------------------//
                                          }
-        | FOR '(' declaration expression_statement ')' statement  {
-                                           $$ = nonTerminal2("FOR ( decl expr_stm ) stmt", $3, $4, $6);
+        | FOR '(' declaration M M7 ')' M statement GOTO_emit  {
+                                           $$ = nonTerminal2("FOR ( decl expr_stm ) stmt", $3, $5, $8);
+                                           //-------------3AC-------------------//
+                                             backPatch($3->nextlist, $4);
+                                             backPatch($5->truelist, $7);
+                                             $5->falselist.merge($8->breaklist);
+                                             $$->nextlist = $5->falselist;
+                                             $8->nextlist.merge($8->continuelist);
+                                             $8->nextlist.push_back($9);
+                                             backPatch($8->nextlist, $4 );
+                                          //------------------------------------//
                                          }
-        | FOR '(' declaration expression_statement expression ')' statement  {
-                                           $$ = nonTerminalFiveChild("FOR ( decl expr_stmt expr ) stmt", NULL, $3, $4, $5, $7);
+        | FOR '(' declaration M M7 M expression GOTO_emit ')' M  statement GOTO_emit {
+                                           $$ = nonTerminalFiveChild("FOR ( decl expr_stmt expr ) stmt", NULL, $3, $5, $7, $11);
+                                           //-------------3AC-------------------//
+                                             backPatch($3->nextlist, $4);
+                                             backPatch($5->truelist, $10);
+                                             $5->falselist.merge($11->breaklist);
+                                             $$->nextlist = $5->falselist;
+                                             $11->nextlist.merge($11->continuelist);
+                                             $11->nextlist.push_back($12);
+                                             backPatch($11->nextlist, $6 );
+                                             $7->nextlist.push_back($8);
+                                             backPatch($7->nextlist, $4);
+                                          //------------------------------------//
                                          }
         ;
 
@@ -1976,19 +2155,40 @@ jump_statement
                                 temp = terminal($1);
                                 temp1 = terminal($2);
                                 $$ = nonTerminal("jump_statement", NULL, temp, temp1);
+                                //-----------3AC---------------------//
+                                 int k = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
+                                 gotoIndexPatchListStorage($2, k);
+                                //-----------------------------------//
                               }
         | CONTINUE ';'        {
-                                $$ = terminal("contiue");
+                                $$ = terminal("continue");
+                                //-----------3AC---------------------//
+                                 int k = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
+                                 $$->continuelist.push_back(k);
+                               //-----------------------------------//
                               }
         | BREAK ';'           {
                                 $$ = terminal("break");
+                                //-----------3AC---------------------//
+                                 int k = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
+                                 $$->breaklist.push_back(k);
+                               //-----------------------------------//
+                                
                               }
         | RETURN ';'          {
                                 $$ = terminal("return");
+                              //------------3AC----------------//
+                               
+                                  emit(pair<string, sEntry*>("RETURN", lookup("return")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),-1);
+                              //------------------------------//
                               }
         | RETURN expression ';' {
                                   temp = terminal("return");
                                     $$ = nonTerminal("jump_statement", NULL, temp, $2);
+                              //------------3AC----------------//
+                               
+                                  emit(pair<string, sEntry*>("RETURN", lookup("return")), $2->place, pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),-1);
+                              //------------------------------//
                                 }
         ;
 
@@ -2103,7 +2303,7 @@ int main(int argc,char **argv){
       }
     }
 
-  }
+}
   if(yyin == NULL) {
     helpMessage();
     return 0;
@@ -2124,8 +2324,11 @@ int main(int argc,char **argv){
   stInitialize();
   graphInitialization();
   yyparse();
+  char* gotoError = backPatchGoto();
+ if(gotoError)
+    yyerror("ERROR: '\%s'\ label used but not defined\n", gotoError);
 
-  graphEnd();
+graphEnd();
   display3ac();
   symFileName = "GST.csv";
   printSymTables(curr,symFileName);
@@ -2136,12 +2339,12 @@ void yyerror(char *s,...){
   va_list args;
   char buffer[MAX_STR_LEN];
 
-  va_start(args,s);
+va_start(args,s);
   vsnprintf(buffer,MAX_STR_LEN-1,s,args);
   va_end(args);
 
 
-  int count = 1;
+int count = 1;
   if(s=="syntax error") count = 2;
   fprintf(stderr,"%s : %d :: %s\n",filename,yylineno,buffer);
   duplicate=fopen("duplicate.txt","r");

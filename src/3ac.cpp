@@ -4,6 +4,8 @@ using namespace std;
 using std::setw;
 
 long long Index = -1;
+map<string, int> gotoIndex;
+unordered_map<string, list<int>> gotoIndexPatchList;
 
 vector <quad> emittedCode;
 string getTmpVar(){
@@ -59,6 +61,20 @@ void setResult(int a, qid p){
 
 void setId1(int a, qid p){
 	emittedCode[a].id1 = p;
+	return;
+}
+
+
+void setListId1(list<int> li, qid p){
+  for(int i=0; i<li.size(); ++i){
+    unsigned N = i;
+    if (li.size() > N)
+    {
+      std::list<int>::iterator it = li.begin();
+      std::advance(it, N);
+      setId1(*it, p);
+  }
+}
 	return;
 }
 
@@ -137,6 +153,33 @@ void assignment2(char *o, string type, string type1, string type3, qid place1, q
 
 }
 
+bool gotoIndexStorage (string id, int loc){
+  if(gotoIndex.find(id) == gotoIndex.end()){
+    //not found
+    gotoIndex.insert(pair<string, int>(id, loc));
+    return true;
+  }
+  return false;
+}
+
+void gotoIndexPatchListStorage (string id, int loc){
+    gotoIndexPatchList[id].push_back(loc);
+}
+
+char* backPatchGoto(){
+  for (auto it =gotoIndexPatchList.begin(); it!=gotoIndexPatchList.end(); ++it){
+    if(gotoIndex.find(it->first)==gotoIndex.end()){
+        char *a;
+        strcpy(a, it->first.c_str());
+        return a;
+    }
+    else {
+        backPatch(gotoIndexPatchList[it->first] , gotoIndex[it->first]);
+    }
+ }
+    return NULL;
+}
+
 void display3ac(){
 	for(int i = 0; i<emittedCode.size(); ++i)  {
 		display(emittedCode[i], i);
@@ -153,7 +196,7 @@ void display(quad q, int i){
 			setw(15) << q.res.first << '\n';
 	}
         else if(q.stmtNum==-2){
-		cout  << "[" << i << "]" << ": "<<
+		cout  << endl << "[" << i << "]" << ": "<<
 		 q.op.first << endl << endl;
 	}
 
