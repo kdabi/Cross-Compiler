@@ -1592,7 +1592,7 @@ direct_declarator
                         //-------------------------------------------------------//
 
         }
-	| direct_declarator '(' E3 parameter_type_list ')'
+	| direct_declarator '(' E3 parameter_type_list ')' M
          {
          $$ = nonTerminal("direct_declarator", NULL, $1, $4);
           if($1->exprType==1){ $$->nodeKey=$1->nodeKey;
@@ -1606,6 +1606,9 @@ direct_declarator
                            }
                         //------------------3AC---------------------------------//
                         $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        backPatch($4->nextlist, $6);
+                        string em =  "func " + $$->nodeKey+ " begin:";
+                        emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-2);
                         //-------------------------------------------------------//
                }
 	| direct_declarator '(' E3 ')'
@@ -1623,6 +1626,8 @@ direct_declarator
                         $$->size = getSize(a);
                         //------------------3AC---------------------------------//
                         $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        string em =  "func " + $$->nodeKey+ " begin:";
+                        emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-2);
                         //-------------------------------------------------------//
                      }
 	| direct_declarator '(' E3 identifier_list ')' {$$ = nonTerminal("direct_declarator", NULL, $1, $4);
@@ -1631,6 +1636,8 @@ direct_declarator
                         $$->size = getSize(a);
                         //------------------3AC---------------------------------//
                         $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
+                        string em =  "func " + $$->nodeKey+ " begin:";
+                        emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-2);
                         //-------------------------------------------------------//
           }
 	;
@@ -1660,13 +1667,19 @@ parameter_type_list
                                         funcArguments = funcArguments+string(",...");
 					temp = terminal($3);
 					$$=nonTerminal("parameter_type_list",NULL,$1,temp);
+                                        $$->nextlist=$1->nextlist;
 				      }
 	| parameter_list {$$=$1;}
 	;
 
 parameter_list
 	: parameter_declaration {$$=$1;}
-	| parameter_list ',' parameter_declaration {$$=nonTerminal("parameter_list",NULL,$1,$3);}
+	| parameter_list ',' M  parameter_declaration {$$=nonTerminal("parameter_list",NULL,$1,$4);
+                                                      //----------------3AC--------------//
+                                                       backPatch($1->nextlist,$3);
+                                                       $$->nextlist=$4->nextlist;
+                                                      //---------------------------------//
+                                                      }
 	;
 
 parameter_declaration
@@ -1752,38 +1765,67 @@ direct_abstract_declarator
 	;
 
 initializer
-	: '{' initializer_list '}' {$$ = $2; $$->nodeType = $2->nodeType+string("*"); }
-	| '{' initializer_list ',' '}' {$$ = nonTerminal("initializer", $3, $2 ,NULL); $$->nodeType = $2->nodeType+string("*"); $$->exprType =$2->exprType;}
+	: '{' initializer_list '}' {$$ = $2; $$->nodeType = $2->nodeType+string("*"); 
+                                   }
+	| '{' initializer_list ',' '}' {$$ = nonTerminal("initializer", $3, $2 ,NULL); $$->nodeType = $2->nodeType+string("*"); $$->exprType =$2->exprType;
+                                     //--------------3AC--------------------//
+                                        $$->place = $2->place;
+                                        $$->nextlist = $2->nextlist;
+                                     //-------------------------------------//
+                                        }
 	| assignment_expression {$$ = $1;}
 	;
 
 initializer_list
-	: designation initializer {
-           $$ = nonTerminal("initializer_list", NULL, $1 ,$2);
-           $$->nodeType = $2->nodeType;
-           char* a =validAssign($1->nodeType,$2->nodeType);
+	: designation M initializer {
+           $$ = nonTerminal("initializer_list", NULL, $1 ,$3);
+           $$->nodeType = $3->nodeType;
+           char* a =validAssign($1->nodeType,$3->nodeType);
                if(a){
                     if(!strcmp(a,"true")){ ; }
                     if(!strcmp(a,"warning")){
                          yyerror("Warning: Assignment with incompatible pointer type");
                          }
                     }
-                else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($2->nodeType).c_str()); }
+                else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($3->nodeType).c_str()); }
            $$->exprType = 1;
+                                     //--------------3AC--------------------//
+                                        $$->place = $3->place;
+                                        backPatch($1->nextlist, $2);
+                                        $$->nextlist = $3->nextlist;
+                                     //-------------------------------------//
         }
 	| initializer {$$ = $1;$$->exprType=1;}
-	| initializer_list ',' designation initializer {
-          $$ = nonTerminal2("initializer_list", $1, $3 ,$4);
+	| initializer_list ',' M designation initializer {
+          $$ = nonTerminal2("initializer_list", $1, $4 ,$5);
           $$->nodeType = $1->nodeType;
-           char* a =validAssign($3->nodeType,$4->nodeType);
+           char* a =validAssign($4->nodeType,$5->nodeType);
                if(a){
                     if(!strcmp(a,"true")){ ; }
                     if(!strcmp(a,"warning")){ ;
                          yyerror("Warning: Assignment with incompatible pointer type");
                          }
                      }
-                else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($3->nodeType).c_str(),($4->nodeType).c_str()); }
-            a =validAssign($1->nodeType,$4->nodeType);
+                else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($4->nodeType).c_str(),($5->nodeType).c_str()); }
+            a =validAssign($1->nodeType,$5->nodeType);
+               if(a){
+                    if(!strcmp(a,"true")){ ; }
+                    if(!strcmp(a,"warning")){ ;
+                         yyerror("Warning: Assignment with incompatible pointer type");
+                         }
+                     }
+                else{ yyerror("Error: Incompatible types when initializing type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($5->nodeType).c_str()); }
+
+            $$->exprType =$1->exprType+1;
+                                     //--------------3AC--------------------//
+                                        backPatch($1->nextlist, $3);
+                                        $$->nextlist = $5->nextlist;
+                                     //-------------------------------------//
+          }
+	| initializer_list ',' M  initializer {
+          $$ = nonTerminal("initializer_list", NULL, $1 ,$4);
+          $$->nodeType = $1->nodeType;
+           char* a =validAssign($1->nodeType,$4->nodeType);
                if(a){
                     if(!strcmp(a,"true")){ ; }
                     if(!strcmp(a,"warning")){ ;
@@ -1791,21 +1833,11 @@ initializer_list
                          }
                      }
                 else{ yyerror("Error: Incompatible types when initializing type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($4->nodeType).c_str()); }
-
-            $$->exprType =$1->exprType+1;
-          }
-	| initializer_list ',' initializer {
-          $$ = nonTerminal("initializer_list", NULL, $1 ,$3);
-          $$->nodeType = $1->nodeType;
-           char* a =validAssign($1->nodeType,$3->nodeType);
-               if(a){
-                    if(!strcmp(a,"true")){ ; }
-                    if(!strcmp(a,"warning")){ ;
-                         yyerror("Warning: Assignment with incompatible pointer type");
-                         }
-                     }
-                else{ yyerror("Error: Incompatible types when initializing type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($3->nodeType).c_str()); }
            $$->exprType = $1->exprType+1;
+                                     //--------------3AC--------------------//
+                                        backPatch($1->nextlist, $3);
+                                        $$->nextlist = $4->nextlist;
+                                     //-------------------------------------//
         }
 	;
 
@@ -1813,6 +1845,10 @@ designation
 	: designator_list '='  {
            $$ = nonTerminal("designation", "=", $1 ,NULL);
            $$->nodeType = $1->nodeType=1;
+           //--------3AC-------------//
+              $$->place= $1->place;
+              $$->nextlist=$1->nextlist;
+           //--------------------------//
            }
 	;
 
@@ -1959,7 +1995,12 @@ jump_statement
 
 translation_unit
 	: external_declaration  {$$ = $1;}
-	| translation_unit external_declaration  {$$ = nonTerminal("translation_unit", NULL, $1, $2);}
+	| translation_unit M external_declaration  {$$ = nonTerminal("translation_unit", NULL, $1, $3);
+                                                   //----------3Ac----------------//
+                                                      backPatch($1->nextlist, $2);
+                                                      $$->nextlist = $3->nextlist;
+                                                   //------------------------------//
+                                                   }
 	;
 
 external_declaration
@@ -1976,6 +2017,10 @@ function_definition
                 symNumber=0;
                updateSymTable(s);
                 $$ = nonTerminalFourChild("function_definition", $1, $2, $4, $5, NULL);
+               //--------------------3AC--------------------------------//
+                        string em =  "func end";
+                        emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-2);
+               //------------------------------------------------------//
          }
 	| declaration_specifiers declarator E2 compound_statement  {
               typeName=string("");
@@ -1984,6 +2029,10 @@ function_definition
               symNumber=0;
               updateSymTable(s);
               $$ = nonTerminal2("function_definition", $1, $2, $4);
+               //--------------------3AC--------------------------------//
+                string em =  "func end";
+                emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-2);
+               //------------------------------------------------------//
              }
 	;
 
@@ -2001,7 +2050,12 @@ E2
 
 declaration_list
 	: declaration {$$ = $1;}
-	| declaration_list declaration {$$ = nonTerminal("declaration_list", NULL, $1, $2);}
+	| declaration_list M declaration {$$ = nonTerminal("declaration_list", NULL, $1, $3);
+                           //--------3AC--------------//
+                             backPatch($1->nextlist, $2);
+                             $$->nextlist = $3->nextlist;
+                          //--------------------------//
+          }
 	;
 
 %%

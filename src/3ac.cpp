@@ -152,6 +152,11 @@ void display(quad q, int i){
 			setw(15) << q.id2.first << " " <<
 			setw(15) << q.res.first << '\n';
 	}
+        else if(q.stmtNum==-2){
+		cout  << "[" << i << "]" << ": "<<
+		 q.op.first << endl << endl;
+	}
+
 	else{
 		cout << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
 			setw(15) << q.id1.first << " " <<

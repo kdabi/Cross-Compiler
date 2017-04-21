@@ -24,6 +24,8 @@ typedef struct {
   list<int> truelist;
   list<int> nextlist;
   list<int> falselist;
+  list<int> breaklist;
+  list<int> continuelist;
   //===============//
   int id;
 } node;
