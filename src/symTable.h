@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <string>
 #include <string.h>
@@ -58,3 +57,9 @@ void printFuncArguments();
 string funcArgList(string key);
 void updateSymtableSize(string key);
 void updateOffset(string key1,string key2);
+bool insertStructSymbol(string key, string type, ull size, ull offset, int isInit );
+bool endStructTable(string structName);
+void makeStructTable();
+int structLookup(string structName, string idStruct);
+bool isStruct(string structName);
+string structMemberType(string structName, string idT);

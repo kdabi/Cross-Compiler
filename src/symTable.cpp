@@ -1,6 +1,8 @@
 #include "symTable.h"
 map<string , string> funcArgumentMap;
 map<symTable *, symTable*> tParent;
+map<string , symTable*> toStructTable;
+map<string , int> structSize;
 map<symTable *, int> symTable_type;
 map<string ,int> switchItem;
 map<int, string> statusMap;
@@ -10,10 +12,55 @@ long long offsetNext[100];
 int offsetNo;
 long long offsetG[100];
 int offsetGNo;
+int structCount;
+int structOffset;
 
 symTable GST;
 int is_next;
 symTable *curr;
+symTable *structTable;
+symTable *tempStructTable;
+
+void makeStructTable(){
+   symTable* myStruct = new symTable;
+   structCount++;
+   structTable = myStruct;
+   structOffset = 0;  
+}
+
+bool insertStructSymbol(string key, string type, ull size, ull offset, int isInit ){
+           if((*structTable).count(key)) return false;
+           insertSymbol(*structTable, key, type, size, -10, isInit);
+           structOffset += size;
+           return true;
+}
+
+bool endStructTable(string structName){
+   if(toStructTable.count(structName)) return false;
+   toStructTable.insert(pair<string, symTable*>(string("STRUCT_")+structName, structTable)); 
+   tParent.insert(pair<symTable*, symTable*>(structTable, NULL));
+   structSize.insert(pair<string, int>(string("STRUCT_")+structName, structOffset));
+   structName = "struct_" + structName + ".csv";
+   printSymTables(structTable, structName);
+   return true;
+}
+
+string structMemberType(string structName, string idT){
+   tempStructTable = toStructTable[structName];
+   sEntry* aT = (*tempStructTable)[idT];
+   return aT->type;
+}
+
+bool isStruct(string structName){
+   if(toStructTable.count(structName)) return true;
+}
+
+int structLookup(string structName, string idStruct){
+   if(toStructTable.count(structName)!=1) return 1;
+   else if((*toStructTable[structName]).count(idStruct)!=1) return 2;
+   return 0;
+
+}
 
 void switchItemMap(){
    statusMap.insert(make_pair<int, string>(1,"iVal"));
@@ -39,6 +86,7 @@ void stInitialize(){
     offsetGNo=0;
     offsetG[offsetGNo]=0;
     offsetNo=0;
+    structCount=0;
     blockNo=0;
     switchItemMap();
     tParent.insert(make_pair<symTable*, symTable*>(&GST, NULL));
@@ -76,6 +124,7 @@ string returnSymType(string key){
 void insertSymbol(symTable& table,string key,string type,ull size,ll offset, int isInit){
    blockSize[blockNo] = blockSize[blockNo] + size;
    if(offset==10){ table.insert (pair<string,sEntry *>(key,makeEntry(type,size,offsetNext[offsetNo],isInit))); }
+   else if(offset==-10){ table.insert (pair<string,sEntry *>(key,makeEntry(type,size,structOffset,isInit))); }
    else { table.insert (pair<string,sEntry *>(key,makeEntry(type,size,offsetG[offsetGNo],isInit))); }
    offsetG[offsetGNo] = offsetG[offsetGNo] + size;
    return;
@@ -175,6 +224,7 @@ void updateKey(string key,void *val){
 */
 ull getSize (char* id){
   // integer
+  if(structSize.count(id)) return structSize[string(id)];
   if(!strcmp(id, "int")) return sizeof(int);
   if(!strcmp(id, "long int")) return sizeof(long int);
   if(!strcmp(id, "long long")) return sizeof(long long);
@@ -354,8 +404,8 @@ void addKeywords(){
   {string *oper = new string();  *oper = "?"; insertSymbol(*curr,"?","Operator",8,0,1); } // ? operator
 
 //////////////// basic printf, scanf, strlen :: to get the code running /////////
-  insertSymbol(*curr,"printf","FUNC_ void",8,0,1); //
-  insertSymbol(*curr,"scanf","FUNC_ void",8,0,1); //
-  insertSymbol(*curr,"strlen","FUNC_ int",8,0,1); //
+  insertSymbol(*curr,"printf","FUNC_void",8,0,1); //
+  insertSymbol(*curr,"scanf","FUNC_void",8,0,1); //
+  insertSymbol(*curr,"strlen","FUNC_int",8,0,1); //
 
 }

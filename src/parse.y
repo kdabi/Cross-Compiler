@@ -29,6 +29,7 @@ extern int yylineno;
 string symFileName;
 string funcName;
 string funcType;
+int structCounter=0;
 string funcArguments;
 string currArguments;
 qid tempQid;
@@ -288,12 +289,23 @@ generic_association
   | postfix_expression '.' IDENTIFIER       {
                                                 temp = terminal($3);
                                                 $$ = nonTerminal("postfix_expression.IDENTIFIER",NULL, $1, temp);
-
-
+                                                string as($3);
+                                                int k = structLookup($1->nodeType, as);
+                                                if(k==1) yyerror("Error: \'.\' is an invalid operator on \'%s\'", $1->nodeKey.c_str() );
+                                                else if(k==2) yyerror("Error: \'%s\' is not a member of struct \'%s\'", $3,$1->nodeKey.c_str() );
+                                                else $$->nodeType = structMemberType($1->nodeType, as);
+                                                $$->nodeKey = $1->nodeKey+ string(".") + as;
                                             }
-  | postfix_expression PTR_OP IDENTIFIER    {
+  | postfix_expression PTR_OP IDENTIFIER    {   
                                                 temp=terminal($3);
                                                 $$ = nonTerminal($2,NULL, $1, temp);
+                                                string as($3);
+                                                string as1 = ($1->nodeType).substr(1);
+                                                int k = structLookup(as1, as);
+                                                if(k==1) yyerror("Error: \'%s\' is an invalid operator on \'%s\'", $2, $1->nodeKey.c_str() );
+                                                else if(k==2) yyerror("Error: \'%s\' is not a member of struct \'%s\'", $3,$1->nodeKey.c_str() );
+                                                else $$->nodeType = structMemberType($1->nodeType, as);
+                                                $$->nodeKey = $1->nodeKey+ string("->") + as;
                                             }
   | postfix_expression INC_OP               {
 
@@ -1304,7 +1316,9 @@ type_specifier
 
 
   | atomic_type_specifier  {$$ = $1;yyerror("Error : Not implemented atomic_type_specifier");}
-  | struct_or_union_specifier  {$$ = $1;yyerror("Error : Not implemented struct or union yet");}
+  | struct_or_union_specifier  {$$ = $1; if(typeName==string(""))typeName =  $$->nodeType;
+                                         else typeName = typeName +string("")+ $$->nodeType;
+                                    }
   | enum_specifier  {$$ =$1;yyerror("Error : not implemented Enum specifier");}
   | TYPEDEF_NAME    {  if(typeName==string(""))typeName = string($1);
                    else typeName = typeName+string(" ")+string($1);
@@ -1313,14 +1327,33 @@ type_specifier
   ;
 
 struct_or_union_specifier
-  : struct_or_union '{' struct_declaration_list '}' {$$ = nonTerminal("struct_or_union_specifier", NULL, $1, $3);}
-  | struct_or_union IDENTIFIER '{' struct_declaration_list '}'  {
-                                                                  $$ = nonTerminal("struct_or_union_specifier", $2, $1, $4);
+  : struct_or_union E5 '{' struct_declaration_list '}' {$$ = nonTerminal("struct_or_union_specifier", NULL, $1, $4);
+                                                                  structCounter++;
+                                                                  string as = to_string(structCounter);
+                                                                  if(endStructTable(as)){
+                                                                  $$->nodeType = string("STRUCT_")+as; }
+                                                                  else yyerror("Error: struct \'%s\' is already defined\n", $2);
+                                                    }
+  | struct_or_union IDENTIFIER  E5 '{' struct_declaration_list '}'  {
+                                                                  string as($2);
+                                                                  $$ = nonTerminal("struct_or_union_specifier", $2, $1, $5);
+                                                                  if(endStructTable(as)){
+                                                                  $$->nodeType = string("STRUCT_")+as; }
+                                                                  else yyerror("Error: struct \'%s\' is already defined\n", $2);
                                                                 }
   | struct_or_union IDENTIFIER   {
                                     $$ = nonTerminal("struct_or_union_specifier", $2,$1, NULL);
+                                    string as($2);
+                                    if(isStruct(as)) $$->nodeType = string("STRUCT_") + as;
+                                    else yyerror("Error: No struct \'%s\' is defined",$2);
                                   }
   ;
+
+E5
+  : %empty{
+           makeStructTable();
+  };
+
 
 struct_or_union
   : STRUCT   {
@@ -1337,8 +1370,10 @@ struct_declaration_list
   ;
 
 struct_declaration
-  : specifier_qualifier_list ';'  {$$ = $1;}
-  | specifier_qualifier_list struct_declarator_list ';' {$$ = nonTerminal("struct_declaration", NULL, $1, $2);}
+  : specifier_qualifier_list ';'  {$$ = $1; typeName = string(""); }
+  | specifier_qualifier_list struct_declarator_list ';' {$$ = nonTerminal("struct_declaration", NULL, $1, $2);
+                                                          typeName = string("");                         
+                                                        }
   | static_assert_declaration  {$$ = $1;}
   ;
 
@@ -1356,8 +1391,12 @@ struct_declarator_list
 
 struct_declarator
 	: ':' constant_expression {$$ = $2;}
-	| declarator ':' constant_expression  {$$ = nonTerminal("struct_declarator", NULL, $1, $3);}
-	| declarator {$$ = $1;}
+	| declarator ':' constant_expression  {$$ = nonTerminal("struct_declarator", NULL, $1, $3);
+                                               if(!insertStructSymbol($1->nodeKey, $1->nodeType, $1->size, 0, 1)) yyerror("Error: \'%s\' is already declared in the same struct", $1->nodeKey.c_str()); 
+                                              }
+	| declarator {$$ = $1;
+                                               if(!insertStructSymbol($1->nodeKey, $1->nodeType, $1->size, 0, 0)) yyerror("Error: \'%s\' is already declared in the same struct", $1->nodeKey.c_str()); 
+                     }
 	;
 
 enum_specifier
