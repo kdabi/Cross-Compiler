@@ -300,11 +300,14 @@ generic_association
                                                 temp=terminal($3);
                                                 $$ = nonTerminal($2,NULL, $1, temp);
                                                 string as($3);
-                                                string as1 = ($1->nodeType).substr(1);
+                                                string as1 = ($1->nodeType).substr(0,($1->nodeType).length()-1);
                                                 int k = structLookup(as1, as);
-                                                if(k==1) yyerror("Error: \'%s\' is an invalid operator on \'%s\'", $2, $1->nodeKey.c_str() );
-                                                else if(k==2) yyerror("Error: \'%s\' is not a member of struct \'%s\'", $3,$1->nodeKey.c_str() );
-                                                else $$->nodeType = structMemberType($1->nodeType, as);
+                                                cout<<k<<endl;
+                                                if(k==1){ yyerror("Error: \'%s\' is an invalid operator on \'%s\'", $2, $1->nodeKey.c_str() );
+                                                }
+                                                else if(k==2){ yyerror("Error: \'%s\' is not a member of struct \'%s\'", $3,$1->nodeKey.c_str() );
+                                                }
+                                                else $$->nodeType = structMemberType(as1, as);
                                                 $$->nodeKey = $1->nodeKey+ string("->") + as;
                                             }
   | postfix_expression INC_OP               {
@@ -1344,7 +1347,8 @@ struct_or_union_specifier
   | struct_or_union IDENTIFIER   {
                                     $$ = nonTerminal("struct_or_union_specifier", $2,$1, NULL);
                                     string as($2);
-                                    if(isStruct(as)) $$->nodeType = string("STRUCT_") + as;
+                                    as = "STRUCT_" + as;
+                                    if(isStruct(as)) $$->nodeType = as;
                                     else yyerror("Error: No struct \'%s\' is defined",$2);
                                   }
   ;

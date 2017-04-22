@@ -1,17 +1,18 @@
 // This is an example on struct
 // Has been picked from :
 // http://fresh2refresh.com/c-programming/c-structures/
-struct student 
+struct red
 {
   int id;
-  char name[20];
+  char name[20][20];
   float percentage;
 } record;
 
-int main() 
-{
 
+int main() 
+{ struct red* a; 
   record.id=1;
+  a->id=1;
   strcpy(record.name, "Raju");
   record.percentage = 86.5;
 
