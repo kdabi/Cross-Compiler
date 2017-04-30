@@ -3,11 +3,16 @@ int func1(int a){
   return a--;
 }
 
+struct node {
+  int a;
+  int b;
+  char* c;
+};
+
 int main(){
   int a = 10;
-  float b = 6;
-  int c = 0;
-  int j = (a+b)?c : b;
-int bi =  func1(a);
-  return 0;
+  struct node d;
+  int b,c;
+  int j = d.a;
+return 1;
   }

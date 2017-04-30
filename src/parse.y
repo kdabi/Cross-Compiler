@@ -16,8 +16,8 @@ int isFunc;
 int blockSym=0;
 int yylex(void);
 void yyerror(char *s,...);
-#include "nodes.h"
 #include "typeCheck.h"
+#include "codeGen.h"
 
 
 FILE *digraph;
@@ -146,7 +146,7 @@ enumeration_constant    /* before it has been defined as such */
   ;
 
 string
-  : STRING_LITERAL                {$$=terminal($1); $$->nodeType = string("char*"); $$->isInit =1; 
+  : STRING_LITERAL                {$$=terminal($1); $$->nodeType = string("char*"); $$->isInit =1;
                                  //---------------3AC-------------------------------//
                                   $$->place = pair<string,sEntry*>($1,NULL);
                                     $$->nextlist={};
@@ -296,7 +296,7 @@ generic_association
                                                 else $$->nodeType = structMemberType($1->nodeType, as);
                                                 $$->nodeKey = $1->nodeKey+ string(".") + as;
                                             }
-  | postfix_expression PTR_OP IDENTIFIER    {   
+  | postfix_expression PTR_OP IDENTIFIER    {
                                                 temp=terminal($3);
                                                 $$ = nonTerminal($2,NULL, $1, temp);
                                                 string as($3);
@@ -567,7 +567,7 @@ multiplicative_expression
                  $$->nodeType = string("long double");
                  //-------------3AC---------------------//
                   qid t1 = getTmpSym($$->nodeType);
-                  
+
                   if(isInt($1->nodeType)){
                         qid t2 = getTmpSym($$->nodeType);
                         emit(pair<string, sEntry*>("inttoreal",NULL),$1->place,pair<string, sEntry*>("",NULL),t2,-1);
@@ -611,7 +611,7 @@ multiplicative_expression
                   $$->nodeType = string("long double");
                  //-------------3AC---------------------//
                   qid t1 = getTmpSym($$->nodeType);
-                  
+
                   if(isInt($1->nodeType)){
                         qid t2 = getTmpSym($$->nodeType);
                         emit(pair<string, sEntry*>("inttoreal",NULL),$1->place,pair<string, sEntry*>("",NULL),t2,-1);
@@ -800,7 +800,7 @@ relational_expression
       }
   | relational_expression '>' shift_expression
  {                $$ = nonTerminal(">", NULL, $1, $3);
-                  char* a=relationalExpr($1->nodeType,$3->nodeType,">");                
+                  char* a=relationalExpr($1->nodeType,$3->nodeType,">");
                    if(a){ if(!strcmp(a,"bool")) $$->nodeType = string("bool");
                           else if(!strcmp(a,"Bool")){
                            $$->nodeType = string("bool");
@@ -820,7 +820,7 @@ relational_expression
   | relational_expression LE_OP shift_expression
    {
                                   $$ = nonTerminal2("<=", $1,NULL, $3);
-                    char* a=relationalExpr($1->nodeType,$3->nodeType,"<=");              
+                    char* a=relationalExpr($1->nodeType,$3->nodeType,"<=");
                     if(a){if(!strcmp(a,"bool")) $$->nodeType = string("bool");
                        else if(!strcmp(a,"Bool")){
                         $$->nodeType = string("bool");
@@ -839,7 +839,7 @@ relational_expression
   | relational_expression GE_OP shift_expression
     {
                        $$ = nonTerminal2(">=", $1,NULL, $3);
-                  char* a=relationalExpr($1->nodeType,$3->nodeType,">=");      
+                  char* a=relationalExpr($1->nodeType,$3->nodeType,">=");
               if(a){  if(!strcmp(a,"bool")) $$->nodeType = string("bool");
                       else if(!strcmp(a,"Bool")){
                         $$->nodeType = string("bool");
@@ -969,7 +969,7 @@ M1
                             int k1 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
                             $1->truelist.push_back(k);
                             $1->falselist.push_back(k1);
-                           
+
                         }
                         $$ = $1;
   }
@@ -1010,7 +1010,7 @@ M2
                             int k1 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
                             $1->truelist.push_back(k);
                             $1->falselist.push_back(k1);
-                           
+
                         }
                         $$ = $1;
   }
@@ -1046,7 +1046,7 @@ M3
                             int k1 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
                             $1->truelist.push_back(k);
                             $1->falselist.push_back(k1);
-                           
+
                         }
                         $$ = $1;
   }
@@ -1071,13 +1071,13 @@ conditional_expression
                     qid t = getTmpSym($$->nodeType);
                     emit(pair<string, sEntry*>("=", lookup("=")), $6->place, pair<string, sEntry*>("", NULL), t, -1);
                     int k = emit(pair<string, sEntry*>("GOTO", lookup("goto")), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), 0);
-                     backPatch($1->truelist , $2);                   
-                     backPatch($1->falselist , $5+1);     
-                     setId1($5-1 , $3->place);              
-                     setResult($5-1 , t);     
-                     $$->nextlist.push_back($5);         
+                     backPatch($1->truelist , $2);
+                     backPatch($1->falselist , $5+1);
+                     setId1($5-1 , $3->place);
+                     setResult($5-1 , t);
+                     $$->nextlist.push_back($5);
                      $$->nextlist.push_back(k);
-                     $$->place = t;         
+                     $$->place = t;
                  //--------------------------------------------------//
                  }
             else
@@ -1096,7 +1096,7 @@ assignment_expression
              { $$ = nonTerminal2($2, $1,NULL, $3);
                char* a = assignmentExpr($1->nodeType,$3->nodeType,$2);
                if(a){
-                    if(!strcmp(a,"true")){ $$->nodeType = $1->nodeType; 
+                    if(!strcmp(a,"true")){ $$->nodeType = $1->nodeType;
                       }
                     if(!strcmp(a,"warning")){ $$->nodeType = $1->nodeType;
                          yyerror("Warning: Assignment with incompatible pointer type");
@@ -1154,8 +1154,8 @@ assignment_operator
 
 expression
   : assignment_expression    { $$ = $1;}
-  | expression ',' M assignment_expression   { 
-                 $$ = nonTerminal("expression",NULL, $1, $4); $$->nodeType = string("void"); 
+  | expression ',' M assignment_expression   {
+                 $$ = nonTerminal("expression",NULL, $1, $4); $$->nodeType = string("void");
                  //--------------3AC--------------------//
                     backPatch($1->nextlist,$3);
                     $$->nextlist = $4->nextlist;
@@ -1169,7 +1169,7 @@ constant_expression
 
 declaration
   : declaration_specifiers ';'  { typeName=string("");}
-  | declaration_specifiers init_declarator_list ';'  { typeName=string(""); $$ = nonTerminal("declaration", NULL, $1, $2); 
+  | declaration_specifiers init_declarator_list ';'  { typeName=string(""); $$ = nonTerminal("declaration", NULL, $1, $2);
                                                       //----------------3AC-----------------------//
                                                         $$->nextlist = $2->nextlist;
                                                       //-----------------------------------------//
@@ -1213,17 +1213,17 @@ init_declarator
                      yyerror("Error: Variable or field \'%s\' declared void",key);
                 }
                 else { if($$->exprType==15) { insertSymbol(*curr,key,t,($4->exprType*$1->iVal),0,1); }
-                        insertSymbol(*curr,key,t,$1->size,0,1); 
+                        insertSymbol(*curr,key,t,$1->size,0,1);
                         //----------------- 3AC ------------------------//
-                             char *a = validAssign($1->nodeType, $4->nodeType); 
+                             char *a = validAssign($1->nodeType, $4->nodeType);
                              if(a){
-                                    if(strcmp(a,"true")){ yyerror("Warning: Invalid assignment of \'%s\' to \'%s\' ",$1->nodeType.c_str(),$4->nodeType.c_str()); }                    
+                                    if(strcmp(a,"true")){ yyerror("Warning: Invalid assignment of \'%s\' to \'%s\' ",$1->nodeType.c_str(),$4->nodeType.c_str()); }
 		             assignmentExpression("=", $1->nodeType,$1->nodeType, $4->nodeType, $1->place, $4->place);
-                             $$->place = $1->place; 
+                             $$->place = $1->place;
                              backPatch($1->nextlist, $3);
                              $$->nextlist = $4->nextlist;
                               }
-                              else { yyerror("Error: Invalid assignment of \'%s\' to \'%s\' ",$1->nodeType.c_str(),$4->nodeType.c_str()); }                        
+                              else { yyerror("Error: Invalid assignment of \'%s\' to \'%s\' ",$1->nodeType.c_str(),$4->nodeType.c_str()); }
                            $$->place = pair<string, sEntry*>($1->nodeKey, lookup($1->nodeKey));
 
                         //-----------------------------------------------//
@@ -1376,7 +1376,7 @@ struct_declaration_list
 struct_declaration
   : specifier_qualifier_list ';'  {$$ = $1; typeName = string(""); }
   | specifier_qualifier_list struct_declarator_list ';' {$$ = nonTerminal("struct_declaration", NULL, $1, $2);
-                                                          typeName = string("");                         
+                                                          typeName = string("");
                                                         }
   | static_assert_declaration  {$$ = $1;}
   ;
@@ -1396,10 +1396,10 @@ struct_declarator_list
 struct_declarator
 	: ':' constant_expression {$$ = $2;}
 	| declarator ':' constant_expression  {$$ = nonTerminal("struct_declarator", NULL, $1, $3);
-                                               if(!insertStructSymbol($1->nodeKey, $1->nodeType, $1->size, 0, 1)) yyerror("Error: \'%s\' is already declared in the same struct", $1->nodeKey.c_str()); 
+                                               if(!insertStructSymbol($1->nodeKey, $1->nodeType, $1->size, 0, 1)) yyerror("Error: \'%s\' is already declared in the same struct", $1->nodeKey.c_str());
                                               }
 	| declarator {$$ = $1;
-                                               if(!insertStructSymbol($1->nodeKey, $1->nodeType, $1->size, 0, 0)) yyerror("Error: \'%s\' is already declared in the same struct", $1->nodeKey.c_str()); 
+                                               if(!insertStructSymbol($1->nodeKey, $1->nodeType, $1->size, 0, 0)) yyerror("Error: \'%s\' is already declared in the same struct", $1->nodeKey.c_str());
                      }
 	;
 
@@ -1487,11 +1487,11 @@ declarator
                         $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
                         //-------------------------------------------------------//
          }
-	| direct_declarator {$$ = $1;if($1->exprType==2){ funcName=$1->nodeKey; funcType = $1->nodeType; 
-                          
+	| direct_declarator {$$ = $1;if($1->exprType==2){ funcName=$1->nodeKey; funcType = $1->nodeType;
+
                             }
                         //------------------3AC---------------------------------//
-                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);           
+                        $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
                         //-------------------------------------------------------//
           }
 	;
@@ -1808,7 +1808,7 @@ direct_abstract_declarator
 	;
 
 initializer
-	: '{' initializer_list '}' {$$ = $2; $$->nodeType = $2->nodeType+string("*"); 
+	: '{' initializer_list '}' {$$ = $2; $$->nodeType = $2->nodeType+string("*");
                                    }
 	| '{' initializer_list ',' '}' {$$ = nonTerminal("initializer", $3, $2 ,NULL); $$->nodeType = $2->nodeType+string("*"); $$->exprType =$2->exprType;
                                      //--------------3AC--------------------//
@@ -1929,14 +1929,14 @@ M5
                                   $$=$2;
                                 //-----------3AC--------------------//
                                  qid t = getTmpSym("bool");
-                                 int k = emit(pair<string, sEntry*>("EQ_OP", lookup("\=\=")),pair<string, sEntry*>("", NULL), $2->place, t, -1);     
+                                 int k = emit(pair<string, sEntry*>("EQ_OP", lookup("\=\=")),pair<string, sEntry*>("", NULL), $2->place, t, -1);
                                  int k1 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("IF", lookup("if")), t, pair<string, sEntry*>("", NULL ),0);
                                  int k2 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
                                  $$->caselist.push_back(k);
                                  $$->truelist.push_back(k1);
                                  $$->falselist.push_back(k2);
                                //-----------------------------------//
-                           
+
 
    }
   ;
@@ -1948,7 +1948,7 @@ labeled_statement
                                 //===========3AC======================//
                                  if(!gotoIndexStorage($1, $3)){
                                      yyerror("ERROR:\'%s\' is already defined", $1);
-                                    
+
                                 }  $$->nextlist = $4->nextlist;
                                    $$->caselist = $4->caselist;
                                    $$->continuelist = $4->continuelist;
@@ -2006,7 +2006,7 @@ E1
 
 block_item_list
 	: block_item  {$$ = $1;}
-	| block_item_list M block_item  {$$ = nonTerminal("block_item_list", NULL, $1, $3); 
+	| block_item_list M block_item  {$$ = nonTerminal("block_item_list", NULL, $1, $3);
                                       //---------------3AC--------------------//
                                          backPatch($1->nextlist, $2);
                                          $$->nextlist = $3->nextlist;
@@ -2016,7 +2016,7 @@ block_item_list
                                          $1->breaklist.merge($3->breaklist);
                                          $$->continuelist = $1->continuelist;
                                          $$->breaklist = $1->breaklist;
-                                      //----------------------------------------//                            
+                                      //----------------------------------------//
                                       }
 	;
 
@@ -2038,7 +2038,7 @@ M4
                             int k1 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
                             $3->truelist.push_back(k);
                             $3->falselist.push_back(k1);
-                           
+
                         }
                         $$ = $3;
   }
@@ -2046,7 +2046,7 @@ M4
 
 GOTO_emit
    : %empty {
-             
+
                            $$ = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
    }
    ;
@@ -2075,7 +2075,7 @@ selection_statement
                                                $$->continuelist = $3->continuelist;
                                                $$->breaklist = $3->breaklist;
                                            //------------------------------------//
-                                         
+
                                          }
         | SWITCH '(' expression ')' statement{
                                            $$ = nonTerminal2("SWITCH (expr) stmt", NULL, $3, $5);
@@ -2096,7 +2096,7 @@ M6
                             int k1 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
                             $1->truelist.push_back(k);
                             $1->falselist.push_back(k1);
-                           
+
                         }
                         $$ = $1;
   }
@@ -2110,7 +2110,7 @@ M7
                             int k1 = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
                             $1->truelist.push_back(k);
                             $1->falselist.push_back(k1);
-                           
+
                         }
                         $$ = $1;
   }
@@ -2132,11 +2132,11 @@ iteration_statement
         | DO M  statement  WHILE '(' M  M6 ')' ';'{
                                                      $$ = nonTerminal2("DO stmt WHILE (expr)", NULL, $3, $7);
                                                    //--------3AC-------------------------//
-                                                      backPatch($7->truelist, $2); 
+                                                      backPatch($7->truelist, $2);
                                                       backPatch($3->continuelist, $6);
                                                       backPatch($3->nextlist, $6);
                                                       $7->falselist.merge($3->breaklist);
-                                                      $$->nextlist = $7->falselist;  
+                                                      $$->nextlist = $7->falselist;
                                                    //-----------------------------------//
                                                    }
         | FOR '(' expression_statement M M7 ')' M statement GOTO_emit  {
@@ -2216,12 +2216,12 @@ jump_statement
                                  int k = emit(pair<string, sEntry*>("GOTO", lookup("goto")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),0);
                                  $$->breaklist.push_back(k);
                                //-----------------------------------//
-                                
+
                               }
         | RETURN ';'          {
                                 $$ = terminal("return");
                               //------------3AC----------------//
-                               
+
                                   emit(pair<string, sEntry*>("RETURN", lookup("return")),pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),-1);
                               //------------------------------//
                               }
@@ -2229,7 +2229,7 @@ jump_statement
                                   temp = terminal("return");
                                     $$ = nonTerminal("jump_statement", NULL, temp, $2);
                               //------------3AC----------------//
-                               
+
                                   emit(pair<string, sEntry*>("RETURN", lookup("return")), $2->place, pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL ),-1);
                               //------------------------------//
                                 }
@@ -2373,6 +2373,8 @@ int main(int argc,char **argv){
 
 graphEnd();
   display3ac();
+  generateCode();
+  printCode();
   symFileName = "GST.csv";
   printSymTables(curr,symFileName);
   printFuncArguments();

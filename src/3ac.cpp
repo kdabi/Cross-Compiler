@@ -115,7 +115,7 @@ void assignmentExpression(char *o, string type, string type1, string type3, qid 
 		t2 = getTmpSym(type);
 		emit(pair<string, sEntry*>("inttoreal",NULL), place3,pair<string, sEntry*>("",NULL),t2,-1);
 		op += "real";
-		if(strcmp(o,"=")) emit(pair<string, sEntry*>(op, lookup(op1)), place1, t2, t, -1); 
+		if(strcmp(o,"=")) emit(pair<string, sEntry*>(op, lookup(op1)), place1, t2, t, -1);
                 b=1;
 	}
 	else if(isFloat(type3) && isInt(type1)){
@@ -195,7 +195,7 @@ void display(quad q, int i){
 			setw(15) << q.id2.first << " " <<
 			setw(15) << q.res.first << '\n';
 	}
-        else if(q.stmtNum==-2){
+  else if(q.stmtNum==-2){
 		cout  << endl << "[" << i << "]" << ": "<<
 		 q.op.first << endl << endl;
 	}
