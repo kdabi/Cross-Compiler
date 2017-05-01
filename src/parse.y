@@ -396,7 +396,10 @@ argument_expression_list
 		if($1->isInit==1)$$->isInit = 1;
                 currArguments = $1->nodeType;
                 //----------------3AC------------//
-                int k=emit(pair<string, sEntry*>("param", NULL), $$->place, pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), -1);
+                if($$->place.second == NULL && $$->nodeType == "char*"){
+                  int k=emit(pair<string, sEntry*>("param", NULL), $$->place, pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), -4);
+                }
+                else int k=emit(pair<string, sEntry*>("param", NULL), $$->place, pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), -1);
                 $$->nextlist={};
                 //---------------3AC------------//
           }
@@ -409,7 +412,10 @@ argument_expression_list
 		if($1->isInit == 1 && $3->isInit==1) $$->isInit=1;
                 currArguments = currArguments +string(",")+ $3->nodeType;
              //-------3AC-------------//
-             int k=emit(pair<string, sEntry*>("param", NULL), $3->place, pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), -1);
+             if($3->place.second == NULL && $3->nodeType == "char*"){
+                  int k=emit(pair<string, sEntry*>("param", NULL), $3->place, pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), -4);
+             }
+             else int k=emit(pair<string, sEntry*>("param", NULL), $3->place, pair<string, sEntry*>("", NULL), pair<string, sEntry*>("", NULL), -1);
              $$->nextlist={};
              //------3AC--------------//
 
@@ -520,9 +526,9 @@ unary_expression
 
 unary_operator
   : '&'      { $$ = terminal("&"); $$->place = pair<string, sEntry*>("&", lookup("&")); }
-  | '*'      { $$ = terminal("*"); $$->place = pair<string, sEntry*>("*", lookup("*")); }
-  | '+'      { $$ = terminal("+"); $$->place = pair<string, sEntry*>("+", lookup("+")); }
-  | '-'      { $$ = terminal("-"); $$->place = pair<string, sEntry*>("-", lookup("-")); }
+  | '*'      { $$ = terminal("*"); $$->place = pair<string, sEntry*>("unary*", lookup("*")); }
+  | '+'      { $$ = terminal("+"); $$->place = pair<string, sEntry*>("unary+", lookup("+")); }
+  | '-'      { $$ = terminal("-"); $$->place = pair<string, sEntry*>("unary-", lookup("-")); }
   | '~'      { $$ = terminal("~"); $$->place = pair<string, sEntry*>("~", lookup("~")); }
   | '!'      { $$ = terminal("!"); $$->place = pair<string, sEntry*>("!", lookup("!")); }
   ;
@@ -2257,6 +2263,7 @@ function_definition
          {      typeName=string("");
                 string s($3);
                 string u = s+string(".csv");
+                cout<< "im "<<u << endl;
                 printSymTables(curr,u);
                 symNumber=0;
                updateSymTable(s);
@@ -2269,6 +2276,7 @@ function_definition
 	| declaration_specifiers declarator E2 compound_statement  {
               typeName=string("");
               string s($3);string u =s+string(".csv");
+              cout<< "im "<<u << endl;
               printSymTables(curr,u);
               symNumber=0;
               updateSymTable(s);

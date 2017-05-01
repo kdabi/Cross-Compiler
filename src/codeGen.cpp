@@ -1,8 +1,12 @@
 #include "codeGen.h"
 
 int counter;
+int dataCounter;
 string reg1,reg2,reg3;
 void generateCode(){
+  dataCounter=0;
+  addData(".data");
+  addData("_newline: .asciiz \"\\n\"");
   currFunction = "main";
  //    cout << "Inside generateCode" << endl;
   for(int i=0; i<emittedCode.size(); ++i){
@@ -17,7 +21,7 @@ void generateCode(){
       if(currFunction=="main"){
                         
         //set the frame pointer of the callee
-        addLine("la $fp, $sp");
+        addLine("la $fp, ($sp)");
         int sizeF = lookup("main")->size;
         //allocate space for the registers by updating the stack pointer
         addLine("sub $sp, $sp, "+to_string(sizeF));
@@ -83,6 +87,13 @@ void generateCode(){
 
       }
     }
+    else if(emittedCode[i].stmtNum == -4){         // this stmtNum is specially set for param with constant string
+       addData("DataString"+to_string(dataCounter)+": .asciiz " + emittedCode[i].id1.first  );
+       addLine("la $a"+to_string(counter)+", DataString"+to_string(dataCounter));
+       counter++;
+       dataCounter++;
+    }
+
     else if(emittedCode[i].stmtNum == -1){
        // for parameters of the functional call
       cout<<"start "<<i<<endl;    
@@ -90,10 +101,10 @@ void generateCode(){
         cout<<emittedCode[i].op.first <<" "<< i <<endl;
         if(emittedCode[i].id1.second!=NULL){
           reg1 = getNextReg(emittedCode[i].id1);
-          addLine("move $a "+to_string(counter)+", "+reg1);
+          addLine("move $a"+to_string(counter)+", "+reg1);
           counter ++;
         } else{
-          addLine("addi $a ,$0, "+emittedCode[i].id1.first);
+          addLine("addi $a"+to_string(counter)+",$0, "+emittedCode[i].id1.first);
           counter ++;
         }
       }
@@ -113,14 +124,144 @@ void generateCode(){
           cout<<emittedCode[i].id1.first<<endl;
           addLine("addi "+reg3+", $0, "+emittedCode[i].id1.first);
                     cout<<emittedCode[i].id1.first<<endl;
-
         }
+      }
 
+      // for unary operators 
+      else if(emittedCode[i].op.first=="&"){
+        reg1 = getNextReg(emittedCode[i].res);
+        int off = emittedCode[i].id1.second->offset;
+        if(currFunction!="main") off+= 72;
+        off = -off;
+        addLine("addi "+reg1+", $fp, "+to_string(off));
+      }
+
+      else if(emittedCode[i].op.first=="unary*"){
+        reg1 = getNextReg(emittedCode[i].res);
+        reg2 = getNextReg(emittedCode[i].id1);
+        addLine("lw "+reg1+", 0("+reg2+")");        
+      }
+
+      else if(emittedCode[i].op.first=="unary-"){
+        reg1 = getNextReg(emittedCode[i].res);
+        if(emittedCode[i].id1.second!=NULL){
+          reg2 = getNextReg(emittedCode[i].id1);
+          addLine("neg "+reg1+", "+reg2);
+        }
+        else addLine("addi "+reg1+", $0, -"+emittedCode[i].id1.first);  
+      }
+
+      else if(emittedCode[i].op.first=="~"){
+        reg1 = getNextReg(emittedCode[i].res);
+        reg2 = getNextReg(emittedCode[i].id1);
+        addLine("not "+reg1+", "+reg2);
+      }
+
+      else if(emittedCode[i].op.first=="unary+"){
+        reg1 = getNextReg(emittedCode[i].res);
+        reg2 = getNextReg(emittedCode[i].id1);
+        addLine("lw "+reg1+", "+reg2);
+      }
+
+      else if(emittedCode[i].op.first=="!"){
+        reg1 = getNextReg(emittedCode[i].res);
+        reg2 = getNextReg(emittedCode[i].id1);
+        addLine("not "+reg1+", "+reg2);
+      }
+
+      // addition of integer operator 
+      else if(emittedCode[i].op.first=="+int"){
+        reg1= getNextReg(emittedCode[i].res);
+        reg2 = getNextReg(emittedCode[i].id1);
+        if(emittedCode[i].id2.second!=NULL){
+          reg3 = getNextReg(emittedCode[i].id2);
+          addLine("add "+reg1+", "+reg2+", "+reg3);
+        }
+        else addLine("addi "+reg1+", "+reg2+", "+emittedCode[i].id2.first);
+      }
+
+      // substraction of integer
+      else if(emittedCode[i].op.first=="-int"){
+        reg1= getNextReg(emittedCode[i].res);
+        reg2 = getNextReg(emittedCode[i].id1);
+        if(emittedCode[i].id2.second!=NULL){
+          reg3 = getNextReg(emittedCode[i].id2);
+          addLine("sub "+reg1+", "+reg2+", "+reg3);
+        }
+        else addLine("addi "+reg1+", "+reg2+", -"+emittedCode[i].id2.first);
+      }
+
+      // multiplication of integer
+      else if(emittedCode[i].op.first=="*int"){
+        reg1= getNextReg(emittedCode[i].res);
+        reg2 = getNextReg(emittedCode[i].id1);
+        if(emittedCode[i].id2.second!=NULL){
+          reg3 = getNextReg(emittedCode[i].id2);
+          addLine("mult "+reg2+", "+reg3);
+          addLine("mflo "+reg1);
+        }
+        else{ 
+          addLine("addi "+reg1+", $0, "+emittedCode[i].id2.first);
+          addLine("mult "+reg2+", "+reg1);
+          addLine("mflo "+reg1);
+        }  
+      }
+      // division of integers
+      else if(emittedCode[i].op.first=="/int"){
+        reg1= getNextReg(emittedCode[i].res);
+        reg2 = getNextReg(emittedCode[i].id1);
+        if(emittedCode[i].id2.second!=NULL){
+          reg3 = getNextReg(emittedCode[i].id2);
+          addLine("div "+reg2+", "+reg3);
+          addLine("mflo "+reg1);
+        }
+        else{ 
+          addLine("addi "+reg1+", $0, "+emittedCode[i].id2.first);
+          addLine("div "+reg2+", "+reg1);
+          addLine("mflo "+reg1);
+        }  
+      }
+      // modulo of integers
+      else if(emittedCode[i].op.first=="%"){
+        reg1= getNextReg(emittedCode[i].res);
+        reg2 = getNextReg(emittedCode[i].id1);
+        if(emittedCode[i].id2.second!=NULL){
+          reg3 = getNextReg(emittedCode[i].id2);
+          addLine("div "+reg2+", "+reg3);
+          addLine("mfhi "+reg1);
+        }
+        else{ 
+          addLine("addi "+reg1+", $0, "+emittedCode[i].id2.first);
+          addLine("div "+reg2+", "+reg1);
+          addLine("mfhi "+reg1);
+        }  
+      }
+
+      // printing one integer
+      else if(emittedCode[i].op.first=="CALL" && emittedCode[i].id1.first =="printf"){
+          addLine("li $v0, 1");
+          addLine("syscall");
+          addLine("li $v0, 4");
+          addLine("la $a0, _newline");
+          addLine("syscall");
+          counter=0; 
+      }
+      else if(emittedCode[i].op.first=="CALL" && emittedCode[i].id1.first =="prints"){
+          // string is already in a0;
+          addLine("li $v0, 4");
+          addLine("syscall");
+          counter=0; 
+      }
+      
+      else if(emittedCode[i].op.first == "RETURN" && currFunction == "main"){
+          addLine("li $a0, 0");
+          addLine("li $v0, 10");
+          addLine("syscall");
       }
       cout<<"exit "<<i<<endl;
     }
 
-
+    
     // allocating
   }
 }

@@ -17,3 +17,4 @@ void printCodeFunc(string a);
 void resetRegister();
 string getNextReg(qid temporary);
 string checkTemporaryInReg(string t);
+void addData(string a);

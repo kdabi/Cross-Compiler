@@ -13,8 +13,15 @@ int main()
 { struct red* a; 
   record.id=1;
   a->id=1;
+  int *v;
+  int k=1;
+  int c;
+  c=-k;
+  v = &c;
+
+
  // strcpy(record.name, "Raju");
-  record.percentage = 86.5;
+  //record.percentage = 86.5;
 
  // printf(" Id is: %d \n", record.id);
  // printf(" Name is: %s \n", record.name);

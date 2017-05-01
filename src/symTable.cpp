@@ -94,7 +94,8 @@ void stInitialize(){
     curr = &GST;
     is_next = 0;
     addKeywords();
-    funcArgumentMap.insert(pair<string,string>(string("printf"),string("char*,...")));
+    funcArgumentMap.insert(pair<string,string>(string("printf"),string("int")));
+    funcArgumentMap.insert(pair<string,string>(string("prints"),string("char*")));
     funcArgumentMap.insert(pair<string,string>(string("scanf"),string("char*,...")));
     funcArgumentMap.insert(pair<string,string>(string("strlen"),string("void*")));
 
@@ -405,7 +406,8 @@ void addKeywords(){
 
 //////////////// basic printf, scanf, strlen :: to get the code running /////////
   insertSymbol(*curr,"printf","FUNC_void",8,0,1); //
-  insertSymbol(*curr,"scanf","FUNC_void",8,0,1); //
+  insertSymbol(*curr,"scanf","FUNC_void",8,0,1);
+  insertSymbol(*curr,"prints","FUNC_void",8,0,1); //
   insertSymbol(*curr,"strlen","FUNC_int",8,0,1); //
 
 }

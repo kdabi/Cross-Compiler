@@ -7,6 +7,7 @@ int regCount = 1;
 
 map <string, vector<string>> code;
 
+std::vector<string> dataSection;
 queue <pair<string, sEntry*>>  regInUse;
 queue <pair<string, sEntry*> > freeReg;
 map <string, string> reg;
@@ -18,10 +19,19 @@ void addLine(string a){
   code[currFunction].push_back(a);
 }
 
+void addData(string a){
+  dataSection.push_back(a);
+}
+
 void printCode(){
   cout<<"1"<<endl;
   codeFile.open("code.asm");
   cout<<"12"<<endl;
+  for(int m=0;m<dataSection.size();m++){
+    codeFile << dataSection[m]<<endl;
+  }
+  codeFile<<endl;
+  codeFile<<".text"<<endl;
   for(auto it = code.begin(); it!=code.end(); ++it){
     cout<<"a"<<endl;
     cout<<it->first << endl;
@@ -66,7 +76,7 @@ string getNextReg(qid temporary){
     addLine("li $s6, "+ to_string(offset1) );       // put the offset in s6
   //  addLine("add $s6, $s6, $s6");        // double the offset
   //  addLine("add $s6, $s6, $s6");        // double the offset again(4x)
-    addLine("add $s7, $fp, $s6");        //combine the two components of the address
+    addLine("sub $s7, $fp, $s6");        //combine the two components of the address
     addLine("lw "+ r +", 0($s7)");
     t.second  = temporary.second;
     regInUse.push(t);
@@ -83,7 +93,7 @@ string getNextReg(qid temporary){
     if(currFunction!="main") offset = offset+72;
 
     addLine("li $s6, "+ to_string(offset));
-    addLine("add $s7, $fp, $s6");        //combine the two components of the address
+    addLine("sub $s7, $fp, $s6");        //combine the two components of the address
 
     addLine("sw "+ r +", 0($s7)");
 
@@ -95,7 +105,7 @@ string getNextReg(qid temporary){
     addLine("li $s6, "+ to_string(offset) );       // put the offset in s6
   //  addLine("add $s6, $s6, $s6");        // double the offset
   //  addLine("add $s6, $s6, $s6");        // double the offset again(4x)
-    addLine("add $s7, $fp, $s6");        //combine the two components of the address
+    addLine("sub $s7, $fp, $s6");        //combine the two components of the address
 
     addLine("lw "+ r +", 0($s7)");
     t.second  = temporary.second;

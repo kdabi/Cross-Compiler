@@ -193,7 +193,7 @@ void display3ac(){
 
 
 void display(quad q, int i){
-	if(q.stmtNum==-1){
+	if(q.stmtNum==-1 || q.stmtNum == -4){
 		intermediateCodeFile << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
 			setw(15) << q.id1.first << " " <<
 			setw(15) << q.id2.first << " " <<
