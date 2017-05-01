@@ -56,7 +56,7 @@ string getNextReg(qid temporary){
   //checking if the temporary is already in a register
   cout<<"a1"<<endl;
   string r = checkTemporaryInReg(temporary.first);
-  if( r!=""){ r.erase(r.begin(), r.begin()+1); return r; }
+  if( r!=""){ r.erase(r.begin(), r.begin()+1); cout << "found you =========================================" << r << "==";return r; }
     cout<<"a2"<<endl;
 
   //Check if we have a freeReg
@@ -115,6 +115,29 @@ string getNextReg(qid temporary){
   }
 }
 
+// flush all registers on jump
+void saveOnJump(){
+  pair<string, sEntry*> t;
+  while(regInUse.size()){
+    t = regInUse.front();
+    regInUse.pop();
+    // Update the exisiting identifier value from resetRegister
+    sEntry* currTmp = t.second;
+    string r = t.first;
+    int offset = currTmp->offset;
+    if(currFunction!="main") offset = offset+72;
+
+    addLine("li $s6, "+ to_string(offset));
+    addLine("sub $s7, $fp, $s6");        //combine the two components of the address
+
+    addLine("sw "+ r +", 0($s7)");
+    t.second  = NULL;
+    freeReg.push(t);
+    string tmp = "_" + r;
+    reg[tmp] = "";
+  }
+}
+
 string checkTemporaryInReg(string t){
   for(auto it = reg.begin(); it!= reg.end(); ++it){
     if (it->second == t) return it->first;
@@ -133,7 +156,7 @@ void resetRegister(){
   pair<string, sEntry*> t6 = pair<string, sEntry*>("$t6", NULL);
   pair<string, sEntry*> t7 = pair<string, sEntry*>("$t7", NULL);
   pair<string, sEntry*> t8 = pair<string, sEntry*>("$t8", NULL);
-  pair<string, sEntry*> t9 = pair<string, sEntry*>("$t9", NULL);
+//  pair<string, sEntry*> t9 = pair<string, sEntry*>("$t9", NULL);
   pair<string, sEntry*> s0 = pair<string, sEntry*>("$s0", NULL);
   pair<string, sEntry*> s1 = pair<string, sEntry*>("$s1", NULL);
   pair<string, sEntry*> s2 = pair<string, sEntry*>("$s2", NULL);
@@ -148,7 +171,7 @@ void resetRegister(){
   freeReg.push(t6);
   freeReg.push(t7);
   freeReg.push(t8);
-  freeReg.push(t9);
+//  freeReg.push(t9); for using in calculations
   freeReg.push(s0);
   freeReg.push(s1);
   freeReg.push(s2);
@@ -164,7 +187,7 @@ void resetRegister(){
   pair<string, string> _t6 = pair<string, string>("$t6", "");
   pair<string, string> _t7 = pair<string, string>("$t7", "");
   pair<string, string> _t8 = pair<string, string>("$t8", "");
-  pair<string, string> _t9 = pair<string, string>("$t9", "");
+//  pair<string, string> _t9 = pair<string, string>("$t9", "");
   pair<string, string> _s0 = pair<string, string>("$s0", "");
   pair<string, string> _s1 = pair<string, string>("$s1", "");
   pair<string, string> _s2 = pair<string, string>("$s2", "");
@@ -179,7 +202,7 @@ void resetRegister(){
   reg.insert(_t6);
   reg.insert(_t7);
   reg.insert(_t8);
-  reg.insert(_t9);
+//  reg.insert(_t9);
   reg.insert(_s0);
   reg.insert(_s1);
   reg.insert(_s2);

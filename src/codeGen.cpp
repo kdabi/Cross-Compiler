@@ -10,6 +10,7 @@ void generateCode(){
   currFunction = "main";
  //    cout << "Inside generateCode" << endl;
   for(int i=0; i<emittedCode.size(); ++i){
+    if( gotoLabels.find(i) != gotoLabels.end() ) { saveOnJump(); addLine(gotoLabels[i]+":");  }
     if(emittedCode[i].stmtNum == -2){
       // this is a function
      // cout << "Inside generateCode function" << endl;
@@ -246,13 +247,84 @@ void generateCode(){
           addLine("syscall");
           counter=0; 
       }
+      // printing string
       else if(emittedCode[i].op.first=="CALL" && emittedCode[i].id1.first =="prints"){
           // string is already in a0;
           addLine("li $v0, 4");
           addLine("syscall");
           counter=0; 
       }
+      // implementing '<'
+      else if(emittedCode[i].op.first== "<"){
+          if(emittedCode[i].id2.second == NULL){
+            addLine("addi $t9, $0, "+emittedCode[i].id2.first);
+            reg1 = "$t9";
+          }
+          else reg1 = getNextReg(emittedCode[i].id2);
+          reg2 = getNextReg(emittedCode[i].id1);
+          reg3 = getNextReg(emittedCode[i].res);
+          addLine("slt "+reg3+", "+reg2+", "+reg1);
+      }
+      // implementing '>'
+      else if(emittedCode[i].op.first== ">"){
+          if(emittedCode[i].id2.second == NULL){
+            addLine("addi $t9, $0, "+emittedCode[i].id2.first);
+            reg1 = "$t9";
+          }
+          else reg1 = getNextReg(emittedCode[i].id2);
+          reg2 = getNextReg(emittedCode[i].id1);
+          reg3 = getNextReg(emittedCode[i].res);
+          addLine("sgt "+reg3+", "+reg2+", "+reg1);
+      }
+
+      // implementing '>='
+      else if(emittedCode[i].op.first== "GE_OP"){
+          if(emittedCode[i].id2.second == NULL){
+            addLine("addi $t9, $0, "+emittedCode[i].id2.first);
+            reg1 = "$t9";
+          }
+          else reg1 = getNextReg(emittedCode[i].id2);
+          reg2 = getNextReg(emittedCode[i].id1);
+          reg3 = getNextReg(emittedCode[i].res);
+          addLine("sge "+reg3+", "+reg2+", "+reg1);
+      }
+
+      // implementing '<='
+      else if(emittedCode[i].op.first== "LE_OP"){
+          if(emittedCode[i].id2.second == NULL){
+            addLine("addi $t9, $0, "+emittedCode[i].id2.first);
+            reg1 = "$t9";
+          }
+          else reg1 = getNextReg(emittedCode[i].id2);
+          reg2 = getNextReg(emittedCode[i].id1);
+          reg3 = getNextReg(emittedCode[i].res);
+          addLine("sle "+reg3+", "+reg2+", "+reg1);
+      }
+
+      // implementing 'EQ_OP' i.e. '=='
+      else if(emittedCode[i].op.first== "EQ_OP"){
+          if(emittedCode[i].id2.second == NULL){
+            addLine("addi $t9, $0, "+emittedCode[i].id2.first);
+            reg1 = "$t9";
+          }
+          else reg1 = getNextReg(emittedCode[i].id2);
+          reg2 = getNextReg(emittedCode[i].id1);
+          reg3 = getNextReg(emittedCode[i].res);
+          addLine("seq "+reg3+", "+reg2+", "+reg1);
+      }
       
+      // implementing 'NE_OP' i.e. '!='
+      else if(emittedCode[i].op.first== "NE_OP"){
+          if(emittedCode[i].id2.second == NULL){
+            addLine("addi $t9, $0, "+emittedCode[i].id2.first);
+            reg1 = "$t9";
+          }
+          else reg1 = getNextReg(emittedCode[i].id2);
+          reg2 = getNextReg(emittedCode[i].id1);
+          reg3 = getNextReg(emittedCode[i].res);
+          addLine("sne "+reg3+", "+reg2+", "+reg1);
+      }
+
       else if(emittedCode[i].op.first == "RETURN" && currFunction == "main"){
           addLine("li $a0, 0");
           addLine("li $v0, 10");
@@ -260,7 +332,24 @@ void generateCode(){
       }
       cout<<"exit "<<i<<endl;
     }
+    else{
+         if(emittedCode[i].op.first == "GOTO" && emittedCode[i].id1.first == ""){
+            saveOnJump();
+            addLine("j "+gotoLabels[emittedCode[i].stmtNum]);
+         }
+         else if(emittedCode[i].op.first == "GOTO" && emittedCode[i].id1.first == "IF"){
+            saveOnJump();
+            if(emittedCode[i].id2.second != NULL){
+              reg1 = getNextReg(emittedCode[i].id2);
+              addLine("bne $0, "+reg1+", "+gotoLabels[emittedCode[i].stmtNum]);
+            }
+            else{
+              addLine("addi $t9, $0, "+ emittedCode[i].id2.first);
+              addLine("bne $0, $t9, "+gotoLabels[emittedCode[i].stmtNum]);
+            }  
+         }
 
+    }
     
     // allocating
   }

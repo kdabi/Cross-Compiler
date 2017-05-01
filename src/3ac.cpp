@@ -4,6 +4,7 @@
 using namespace std;
 using std::setw;
 
+map<int , string> gotoLabels;
 ofstream intermediateCodeFile;
 long long Index = -1;
 map<string, int> gotoIndex;
@@ -205,6 +206,7 @@ void display(quad q, int i){
 	}
 
 	else{
+    if( gotoLabels.find(q.stmtNum)== gotoLabels.end()) gotoLabels.insert(pair<int, string>(q.stmtNum, "Label"+to_string(q.stmtNum)));
 		intermediateCodeFile << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
 			setw(15) << q.id1.first << " " <<
 			setw(15) << q.id2.first << " " <<

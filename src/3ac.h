@@ -19,6 +19,8 @@ typedef struct quadruple{
 } quad;
 
 extern vector <quad> emittedCode;
+extern map<int , string> gotoLabels;
+
 string getTmpVar();
 pair<string, sEntry*> getTmpSym(string type);
 int emit (qid id1, qid id2, qid op, qid  res, int stmtNum);
