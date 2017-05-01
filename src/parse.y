@@ -1985,20 +1985,20 @@ compound_statement
 	| E1  block_item_list '}'  {if(blockSym){ string s($1);
                                     s=s+string(".csv");
                                     string u($1);
-                                    printSymTables(curr,s);
-                                    updateSymTable(u); blockSym--;
+                                    //printSymTables(curr,s);
+                                    //updateSymTable(u); blockSym--;
                                  } $$ = $2;
                                }
 	;
 E1
     :  '{'       { if(isFunc==0) {symNumber++;
                         symFileName = /*string("symTableFunc")+to_string(funcSym)*/funcName+string("Block")+to_string(symNumber);
-                        scope=S_BLOCK;
-                        makeSymTable(symFileName,scope,string("12345"));
+                        //scope=S_BLOCK;
+                        //makeSymTable(symFileName,scope,string("12345"));
                         char * y=new char();
                         strcpy(y,symFileName.c_str());
                         $$ = y;
-                        blockSym++;
+                        //blockSym++;
                         }
                        isFunc=0;
               }
