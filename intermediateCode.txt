@@ -1,0 +1,137 @@
+
+[0]: func isSubstrEven begin:
+
+    [1]:               =               0                               i
+    [2]:               <               i          length          __t1__
+    [3]:            GOTO              IF          __t1__               7---
+    [4]:            GOTO                                              18---
+    [5]:             ++S               i                          __t2__
+    [6]:            GOTO                                               2---
+    [7]:              []               a               i          __t3__
+    [8]:              []               b               i          __t4__
+    [9]:           NE_OP          __t3__          __t4__          __t5__
+    [10]:            GOTO              IF          __t5__              12---
+    [11]:            GOTO                                              13---
+    [12]:          RETURN               0                                
+    [13]:       inttoreal               1                          __t7__
+    [14]:           *real          __t7__             2.0          __t6__
+    [15]:       realtoint          __t6__                          __t8__
+    [16]:               =          __t8__                          length
+    [17]:            GOTO                                               5---
+    [18]:          RETURN               1                                
+
+[19]: func end
+
+
+[20]: func isSubstrOdd begin:
+
+    [21]:               <         lengthA         lengthB          __t9__
+    [22]:            GOTO              IF          __t9__              24---
+    [23]:            GOTO                                              25---
+    [24]:          RETURN               0                                
+    [25]:           EQ_OP         lengthA               1         __t10__
+    [26]:            GOTO              IF         __t10__              28---
+    [27]:            GOTO                                              39---
+    [28]:           EQ_OP         lengthB               1         __t11__
+    [29]:            GOTO              IF         __t11__              31---
+    [30]:            GOTO                                              37---
+    [31]:               *               a                         __t12__
+    [32]:               *               b                         __t13__
+    [33]:           NE_OP         __t12__         __t13__         __t14__
+    [34]:            GOTO              IF         __t14__              36---
+    [35]:            GOTO                                              37---
+    [36]:          RETURN               0                                
+    [37]:          RETURN               1                                
+    [38]:            GOTO                                               0---
+    [39]:               *               a                         __t15__
+    [40]:               *               b                         __t16__
+    [41]:           EQ_OP         __t15__         __t16__         __t17__
+    [42]:            GOTO              IF         __t17__              44---
+    [43]:            GOTO                                              56---
+    [44]:          +char*               a               1         __t18__
+    [45]:           param         __t18__                                
+    [46]:          +char*               b               1         __t19__
+    [47]:           param         __t19__                                
+    [48]:            -int         lengthA               1         __t20__
+    [49]:           param         __t20__                                
+    [50]:            -int         lengthB               1         __t21__
+    [51]:           param         __t21__                                
+    [52]:        refParam                                         __t22__
+    [53]:            CALL     isSubstrOdd               5         __t22__
+    [54]:          RETURN         __t22__                                
+    [55]:            GOTO                                               0---
+    [56]:          +char*               a               1         __t23__
+    [57]:           param         __t23__                                
+    [58]:           param               b                                
+    [59]:            -int         lengthA               1         __t24__
+    [60]:           param         __t24__                                
+    [61]:           param         lengthB                                
+    [62]:        refParam                                         __t25__
+    [63]:            CALL     isSubstrOdd               5         __t25__
+    [64]:          RETURN         __t25__                                
+
+[65]: func end
+
+
+[66]: func main begin:
+
+    [67]:             --S               t                         __t26__
+    [68]:            GOTO              IF         __t26__              70---
+    [69]:            GOTO                                             123---
+    [70]:               =               1                             len
+    [71]:               <             len               2         __t27__
+    [72]:            GOTO              IF         __t27__              74---
+    [73]:            GOTO                                              76---
+    [74]:               =               1                               t
+    [75]:            GOTO                                              67---
+    [76]:               %             len               2         __t28__
+    [77]:           EQ_OP         __t28__               0         __t29__
+    [78]:            GOTO              IF         __t29__              80---
+    [79]:            GOTO                                              94---
+    [80]:           param               s                                
+    [81]:            /int             len               2         __t30__
+    [82]:          +char*               s         __t30__         __t31__
+    [83]:           param         __t31__                                
+    [84]:            /int             len               2         __t32__
+    [85]:           param         __t32__                                
+    [86]:        refParam                                         __t33__
+    [87]:            CALL    isSubstrEven               4         __t33__
+    [88]:            GOTO              IF         __t33__              90---
+    [89]:            GOTO                                              92---
+    [90]:               =               1                               t
+    [91]:            GOTO                                              67---
+    [92]:               =               1                               t
+    [93]:            GOTO                                              67---
+    [94]:            /int             len               2         __t34__
+    [95]:               =         __t34__                              l1
+    [96]:           param               s                                
+    [97]:          +char*               s              l1         __t35__
+    [98]:          +char*         __t35__               1         __t36__
+    [99]:           param         __t36__                                
+    [100]:            +int              l1               1         __t37__
+    [101]:           param         __t37__                                
+    [102]:           param              l1                                
+    [103]:        refParam                                         __t38__
+    [104]:            CALL     isSubstrOdd               5         __t38__
+    [105]:            GOTO              IF         __t38__             107---
+    [106]:            GOTO                                             109---
+    [107]:               =               1                               t
+    [108]:            GOTO                                              67---
+    [109]:          +char*               s              l1         __t39__
+    [110]:           param         __t39__                                
+    [111]:           param               s                                
+    [112]:            +int              l1               1         __t40__
+    [113]:           param         __t40__                                
+    [114]:           param              l1                                
+    [115]:        refParam                                         __t41__
+    [116]:            CALL     isSubstrOdd               5         __t41__
+    [117]:            GOTO              IF         __t41__             119---
+    [118]:            GOTO                                             121---
+    [119]:               =               1                               t
+    [120]:            GOTO                                              67---
+    [121]:               =               1                               t
+    [122]:            GOTO                                              67---
+    [123]:          RETURN               0                                
+
+[124]: func end
+

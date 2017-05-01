@@ -1218,6 +1218,7 @@ init_declarator
                              char *a = validAssign($1->nodeType, $4->nodeType);
                              if(a){
                                     if(strcmp(a,"true")){ yyerror("Warning: Invalid assignment of \'%s\' to \'%s\' ",$1->nodeType.c_str(),$4->nodeType.c_str()); }
+                  $1->place = pair<string, sEntry*>($1->nodeKey, lookup($1->nodeKey));
 		             assignmentExpression("=", $1->nodeType,$1->nodeType, $4->nodeType, $1->place, $4->place);
                              $$->place = $1->place;
                              backPatch($1->nextlist, $3);
@@ -2262,7 +2263,7 @@ function_definition
                 $$ = nonTerminalFourChild("function_definition", $1, $2, $4, $5, NULL);
                //--------------------3AC--------------------------------//
                         string em =  "func end";
-                        emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-2);
+                        emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-3);
                //------------------------------------------------------//
          }
 	| declaration_specifiers declarator E2 compound_statement  {
@@ -2274,7 +2275,7 @@ function_definition
               $$ = nonTerminal2("function_definition", $1, $2, $4);
                //--------------------3AC--------------------------------//
                 string em =  "func end";
-                emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-2);
+                emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-3);
                //------------------------------------------------------//
              }
 	;
@@ -2310,6 +2311,7 @@ void helpMessage(){
 }
 
 extern FILE *yyin;
+
 int main(int argc,char **argv){
   if(argc==1){
     helpMessage();
@@ -2373,11 +2375,17 @@ int main(int argc,char **argv){
 
 graphEnd();
   display3ac();
+  resetRegister();
+  cout<<"go in generate code"<<endl;
   generateCode();
+  cout<<"go in print code"<<endl;
   printCode();
+  cout<<"done code"<<endl;
   symFileName = "GST.csv";
   printSymTables(curr,symFileName);
+  cout<<"done code"<<endl;
   printFuncArguments();
+  cout<<"done code"<<endl;
   return 0;
 }
 void yyerror(char *s,...){

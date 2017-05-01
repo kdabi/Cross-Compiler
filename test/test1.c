@@ -27,27 +27,27 @@ int isSubstrOdd(char *a, char* b, int lengthA, int lengthB){
 
 int main(){
   int t; 
-  scanf("%d", &t);
+ // scanf("%d", &t);
   while (t--){
     char s[1000004];
-    scanf ("%s", s);
-    int len = strlen(s);
+    //scanf ("%s", s);
+    int len = 1;
     if (len <2)
-      printf("NO\n");
+      t=1;//printf("NO\n");
     else if(len%2==0){
       if (isSubstrEven(s, s+len/2, len/2))
-        printf ("YES\n");
+      t=1;//printf("NO\n");
       else 
-        printf("NO\n");
+      t=1;//printf("NO\n");
     }
     else {
       int l1 = len/2;
       if (isSubstrOdd(s, s+l1+1, l1+1, l1))
-        printf("YES\n");
+      t=1;//printf("NO\n");
       else if (isSubstrOdd(s+l1, s, l1+1, l1 ))
-        printf("YES\n");
+      t=1;//printf("NO\n");
       else 
-        printf("NO\n");
+      t=1;//printf("NO\n");
 
     }
   }

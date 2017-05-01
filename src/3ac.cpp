@@ -1,8 +1,10 @@
+#include <fstream>
 #include "3ac.h"
 #include "typeCheck.h"
 using namespace std;
 using std::setw;
 
+ofstream intermediateCodeFile;
 long long Index = -1;
 map<string, int> gotoIndex;
 unordered_map<string, list<int>> gotoIndexPatchList;
@@ -181,27 +183,29 @@ char* backPatchGoto(){
 }
 
 void display3ac(){
+  intermediateCodeFile.open("intermediateCode.txt");
 	for(int i = 0; i<emittedCode.size(); ++i)  {
 		display(emittedCode[i], i);
 	}
 	return;
+  intermediateCodeFile.close();
 }
 
 
 void display(quad q, int i){
 	if(q.stmtNum==-1){
-		cout << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
+		intermediateCodeFile << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
 			setw(15) << q.id1.first << " " <<
 			setw(15) << q.id2.first << " " <<
 			setw(15) << q.res.first << '\n';
 	}
-  else if(q.stmtNum==-2){
-		cout  << endl << "[" << i << "]" << ": "<<
+  else if(q.stmtNum==-2 || q.stmtNum == -3){
+		intermediateCodeFile  << endl << "[" << i << "]" << ": "<<
 		 q.op.first << endl << endl;
 	}
 
 	else{
-		cout << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
+		intermediateCodeFile << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
 			setw(15) << q.id1.first << " " <<
 			setw(15) << q.id2.first << " " <<
 			setw(15) << q.stmtNum << "---" << '\n';

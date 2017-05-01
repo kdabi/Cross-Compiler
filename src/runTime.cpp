@@ -19,11 +19,18 @@ void addLine(string a){
 }
 
 void printCode(){
+  cout<<"1"<<endl;
   codeFile.open("code.asm");
+  cout<<"12"<<endl;
   for(auto it = code.begin(); it!=code.end(); ++it){
+    cout<<"a"<<endl;
+    cout<<it->first << endl;
     printCodeFunc(it->first);
+    cout<<"13"<<endl;
   }
-  codeFile.close();
+  cout<<"1"<<endl;
+  //codeFile.close();
+  cout<<"1"<<endl;
 }
 
 void printCodeFunc(string a){
@@ -37,16 +44,26 @@ void printCodeFunc(string a){
 
 string getNextReg(qid temporary){
   //checking if the temporary is already in a register
+  cout<<"a1"<<endl;
   string r = checkTemporaryInReg(temporary.first);
   if( r!=""){ r.erase(r.begin(), r.begin()+1); return r; }
+    cout<<"a2"<<endl;
+
   //Check if we have a freeReg
   if(freeReg.size()) {
+
     pair<string, sEntry*> t = freeReg.front();
     freeReg.pop();
-    int offset = temporary.second->offset;
+          
+    int offset1 = temporary.second->offset;
+          cout<<"a2"<<endl;
+
+    if(currFunction!="main") offset1 = offset1+72;
     r = t.first;
+      cout<<"a1"<<endl;
+
     // now we store value to the location in the stack
-    addLine("li $s6, "+ offset );       // put the offset in s6
+    addLine("li $s6, "+ to_string(offset1) );       // put the offset in s6
   //  addLine("add $s6, $s6, $s6");        // double the offset
   //  addLine("add $s6, $s6, $s6");        // double the offset again(4x)
     addLine("add $s7, $fp, $s6");        //combine the two components of the address
@@ -63,15 +80,19 @@ string getNextReg(qid temporary){
     sEntry* currTmp = t.second;
     r = t.first;
     int offset = currTmp->offset;
-    addLine("li $s6, "+ offset);
+    if(currFunction!="main") offset = offset+72;
+
+    addLine("li $s6, "+ to_string(offset));
     addLine("add $s7, $fp, $s6");        //combine the two components of the address
 
     addLine("sw "+ r +", 0($s7)");
 
     // Load this register with temporary
     offset = temporary.second->offset;
+    if(currFunction!="main") offset = offset+72;
+
     // now we store value to the location in the stack
-    addLine("li $s6, "+ offset );       // put the offset in s6
+    addLine("li $s6, "+ to_string(offset) );       // put the offset in s6
   //  addLine("add $s6, $s6, $s6");        // double the offset
   //  addLine("add $s6, $s6, $s6");        // double the offset again(4x)
     addLine("add $s7, $fp, $s6");        //combine the two components of the address
