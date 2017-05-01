@@ -8,6 +8,7 @@ void generateCode(){
   addData(".data");
   addData("_newline: .asciiz \"\\n\"");
   currFunction = "main";
+  addLine("");
  //    cout << "Inside generateCode" << endl;
   for(int i=0; i<emittedCode.size(); ++i){
     if( gotoLabels.find(i) != gotoLabels.end() ) { saveOnJump(); addLine(gotoLabels[i]+":");  }
@@ -22,13 +23,14 @@ void generateCode(){
       if(currFunction=="main"){
                         
         //set the frame pointer of the callee
+        addLine("sub $sp, $sp, 200");
         addLine("la $fp, ($sp)");
         int sizeF = lookup("main")->size;
         //allocate space for the registers by updating the stack pointer
         addLine("sub $sp, $sp, "+to_string(sizeF));
         }
       else{
-        int sizeF = lookup(currFunction)->size;
+        int sizeF = lookup(currFunction)->size+4;
 
         //allocate space for the registers by updating the stack pointer
         addLine("sub $sp, $sp, 72");
@@ -67,7 +69,7 @@ void generateCode(){
        //copy the parameters 
        string parameterList = funcArgList(currFunction);
        int paramNum = 0;
-       int paramSize = 0;
+       int paramSize = 76;
        string temp = parameterList;
        if(parameterList!=""){
         string delim = string(",");
@@ -76,13 +78,17 @@ void generateCode(){
         while(f1!=-1){
                     temp1 = temp.substr(0,f1);temp=temp.substr(f1+1);
                     f1 = temp.find_first_of(delim);
-                    addLine("sw $a"+to_string(paramNum)+", "+to_string(paramSize)+"($sp)");
+                    addLine("li $s6, "+to_string(paramSize));
+                    addLine("sub $s7, $fp, $s6");
+                    addLine("sw $a"+to_string(paramNum)+", 0($s7)");
                     char * a ;
                     strcpy(a,temp1.c_str());
                     paramSize += getSize(a);
                     paramNum++;
         }
-        addLine("sw $a"+to_string(paramNum)+", "+to_string(paramSize)+"($sp)");
+        addLine("li $s6, "+to_string(paramSize));
+        addLine("sub $s7, $fp, $s6");
+        addLine("sw $a"+to_string(paramNum)+", 0($s7)");
       }
 
 
@@ -132,7 +138,7 @@ void generateCode(){
       else if(emittedCode[i].op.first=="&"){
         reg1 = getNextReg(emittedCode[i].res);
         int off = emittedCode[i].id1.second->offset;
-        if(currFunction!="main") off+= 72;
+        if(currFunction!="main") off+= 76;
         off = -off;
         addLine("addi "+reg1+", $fp, "+to_string(off));
       }
@@ -202,8 +208,8 @@ void generateCode(){
           addLine("mflo "+reg1);
         }
         else{ 
-          addLine("addi "+reg1+", $0, "+emittedCode[i].id2.first);
-          addLine("mult "+reg2+", "+reg1);
+          addLine("addi $t9, $0, "+emittedCode[i].id2.first);
+          addLine("mult "+reg2+", $t9");
           addLine("mflo "+reg1);
         }  
       }
@@ -217,8 +223,8 @@ void generateCode(){
           addLine("mflo "+reg1);
         }
         else{ 
-          addLine("addi "+reg1+", $0, "+emittedCode[i].id2.first);
-          addLine("div "+reg2+", "+reg1);
+          addLine("addi $t9, $0, "+emittedCode[i].id2.first);
+          addLine("div "+reg2+", $t9");
           addLine("mflo "+reg1);
         }  
       }
@@ -330,8 +336,68 @@ void generateCode(){
           addLine("li $v0, 10");
           addLine("syscall");
       }
+      else if(emittedCode[i].op.first=="CALL" && emittedCode[i].id1.first == "scanf"){
+          reg1 = getNextReg(emittedCode[i].res);
+          addLine("li $v0, 5");
+          addLine("syscall");
+          addLine("move "+reg1+", $v0");
+      }    
+      else if(emittedCode[i].op.first == "RETURN" && currFunction != "main"){
+          if(emittedCode[i].id1.second!= NULL){
+            reg1 = getNextReg(emittedCode[i].id1);
+            addLine("move $v0, "+ reg1);
+          }else { addLine("li $v0, "+emittedCode[i].id1.first ); }  
+          addLine("b "+currFunction +"end");
+      }
+      else if(emittedCode[i].op.first == "CALL"){
+          addLine("jal "+emittedCode[i].id1.first);
+          if(emittedCode[i].res.second != NULL){
+            reg1 = getNextReg(emittedCode[i].res);
+            addLine("move "+reg1+", $v0");
+            counter = 0;
+          }
+      }    
+      
+
       cout<<"exit "<<i<<endl;
     }
+    // implementing returns from non-main functions
+    else if(emittedCode[i].stmtNum == -3 && currFunction != "main"){
+          addLine(currFunction+"end:");
+
+          // Removing the local data of the functions
+          int sizeEnd = lookup(currFunction)->size+4;
+          addLine("addi $sp, $sp, "+to_string(sizeEnd));
+
+          // Get environment pointers
+          addLine("lw $ra, 0($sp)");
+          addLine("lw $fp, 4($sp)");
+          addLine("lw $a0, 8($sp)");
+
+          // Restoring all the Registers
+          addLine("lw $t0, 12($sp)"); 
+          addLine("lw $t1, 16($sp)"); 
+          addLine("lw $t2, 20($sp)"); 
+          addLine("lw $t3, 24($sp)"); 
+          addLine("lw $t4, 28($sp)"); 
+          addLine("lw $t5, 32($sp)"); 
+          addLine("lw $t6, 36($sp)"); 
+          addLine("lw $t7, 40($sp)"); 
+          addLine("lw $t8, 44($sp)"); 
+          addLine("lw $t9, 48($sp)"); 
+          addLine("lw $s0, 52($sp)"); 
+          addLine("lw $s1, 56($sp)");
+          addLine("lw $s2, 60($sp)"); 
+          addLine("lw $s3, 64($sp)"); 
+          addLine("lw $s4, 68($sp)");
+          addLine("addi $sp, $sp, 72");
+
+          // jump to the calling procedure
+          addLine("jr $ra"); 
+
+
+    }
+    // jump statements
     else{
          if(emittedCode[i].op.first == "GOTO" && emittedCode[i].id1.first == ""){
             saveOnJump();

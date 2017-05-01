@@ -32,6 +32,10 @@ void printCode(){
   }
   codeFile<<endl;
   codeFile<<".text"<<endl;
+  printCodeFunc("main");
+  std::map<string , std::vector<string>>::iterator it;
+  it = code.find("main");
+  code.erase(it);
   for(auto it = code.begin(); it!=code.end(); ++it){
     cout<<"a"<<endl;
     cout<<it->first << endl;
@@ -68,7 +72,7 @@ string getNextReg(qid temporary){
     int offset1 = temporary.second->offset;
           cout<<"a2"<<endl;
 
-    if(currFunction!="main") offset1 = offset1+72;
+    if(currFunction!="main") offset1 = offset1+76;
     r = t.first;
       cout<<"a1"<<endl;
 
@@ -90,7 +94,7 @@ string getNextReg(qid temporary){
     sEntry* currTmp = t.second;
     r = t.first;
     int offset = currTmp->offset;
-    if(currFunction!="main") offset = offset+72;
+    if(currFunction!="main") offset = offset+76;
 
     addLine("li $s6, "+ to_string(offset));
     addLine("sub $s7, $fp, $s6");        //combine the two components of the address
@@ -99,7 +103,7 @@ string getNextReg(qid temporary){
 
     // Load this register with temporary
     offset = temporary.second->offset;
-    if(currFunction!="main") offset = offset+72;
+    if(currFunction!="main") offset = offset+76;
 
     // now we store value to the location in the stack
     addLine("li $s6, "+ to_string(offset) );       // put the offset in s6
@@ -125,7 +129,7 @@ void saveOnJump(){
     sEntry* currTmp = t.second;
     string r = t.first;
     int offset = currTmp->offset;
-    if(currFunction!="main") offset = offset+72;
+    if(currFunction!="main") offset = offset+76;
 
     addLine("li $s6, "+ to_string(offset));
     addLine("sub $s7, $fp, $s6");        //combine the two components of the address
