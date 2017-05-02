@@ -94,6 +94,7 @@ void stInitialize(){
     curr = &GST;
     is_next = 0;
     addKeywords();
+    funcArgumentMap.insert(pair<string,string>(string("printn"),string("int")));
     funcArgumentMap.insert(pair<string,string>(string("printf"),string("int")));
     funcArgumentMap.insert(pair<string,string>(string("prints"),string("char*")));
     funcArgumentMap.insert(pair<string,string>(string("scanf"),string("")));
@@ -409,5 +410,6 @@ void addKeywords(){
   insertSymbol(*curr,"scanf","FUNC_int",8,0,1);
   insertSymbol(*curr,"prints","FUNC_void",8,0,1); //
   insertSymbol(*curr,"strlen","FUNC_int",8,0,1); //
+  insertSymbol(*curr,"printn","FUNC_void",8,0,1); //
 
 }

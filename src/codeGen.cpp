@@ -11,6 +11,7 @@ void generateCode(){
   addLine("");
  //    cout << "Inside generateCode" << endl;
   for(int i=0; i<emittedCode.size(); ++i){
+    addLine("# "+to_string(i+1)+" : "+emittedCode[i].res.first+" = "+emittedCode[i].id1.first + " "+ emittedCode[i].op.first+" "+ emittedCode[i].id2.first );
     if( gotoLabels.find(i) != gotoLabels.end() ) { saveOnJump(); addLine(gotoLabels[i]+":");  }
     if(emittedCode[i].stmtNum == -2){
       // this is a function
@@ -30,6 +31,7 @@ void generateCode(){
         addLine("sub $sp, $sp, "+to_string(sizeF));
         }
       else{
+        //currFunction = currFunction + to_string(i);
         int sizeF = lookup(currFunction)->size+4;
 
         //allocate space for the registers by updating the stack pointer
@@ -141,12 +143,14 @@ void generateCode(){
         if(currFunction!="main") off+= 76;
         off = -off;
         addLine("addi "+reg1+", $fp, "+to_string(off));
+        saveOnJump();
       }
 
       else if(emittedCode[i].op.first=="unary*"){
         reg1 = getNextReg(emittedCode[i].res);
         reg2 = getNextReg(emittedCode[i].id1);
-        addLine("lw "+reg1+", 0("+reg2+")");        
+        addLine("lw "+reg1+", 0("+reg2+")");
+        saveOnJump();        
       }
 
       else if(emittedCode[i].op.first=="unary-"){
@@ -244,12 +248,25 @@ void generateCode(){
         }  
       }
 
-      // printing one integer
+      // printing one integer with newline
       else if(emittedCode[i].op.first=="CALL" && emittedCode[i].id1.first =="printf"){
           addLine("li $v0, 1");
           addLine("syscall");
           addLine("li $v0, 4");
           addLine("la $a0, _newline");
+          addLine("syscall");
+          counter=0; 
+      }
+      // updating offsets of [].....
+      else if(emittedCode[i].op.first == "[]"){
+          
+
+
+      }
+
+      // printing one integer without newline
+      else if(emittedCode[i].op.first=="CALL" && emittedCode[i].id1.first =="printn"){
+          addLine("li $v0, 1");
           addLine("syscall");
           counter=0; 
       }
