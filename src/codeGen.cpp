@@ -84,17 +84,21 @@ void generateCode() {
             temp1 = temp.substr(0, f1);
             temp = temp.substr(f1 + 1);
             f1 = temp.find_first_of(delim);
-            addLine("li $s6, " + to_string(paramSize));
-            addLine("sub $s7, $fp, $s6");
-            addLine("sw $a" + to_string(paramNum) + ", 0($s7)");
+            if(paramNum<4){
+              addLine("li $s6, " + to_string(paramSize));
+              addLine("sub $s7, $fp, $s6");
+              addLine("sw $a" + to_string(paramNum) + ", 0($s7)");
+            }
             char a[50];
             strcpy(a, temp1.c_str());
             paramSize += getSize(a);
             paramNum++;
           }
-          addLine("li $s6, " + to_string(paramSize));
-          addLine("sub $s7, $fp, $s6");
-          addLine("sw $a" + to_string(paramNum) + ", 0($s7)");
+          if(paramNum<4){
+            addLine("li $s6, " + to_string(paramSize));
+            addLine("sub $s7, $fp, $s6");
+            addLine("sw $a" + to_string(paramNum) + ", 0($s7)");
+          }
         }
       }
     } else if (emittedCode[i].stmtNum == -4) { // this stmtNum is specially set
@@ -129,14 +133,38 @@ void generateCode() {
                                           // address
             addLine("lw $t6, 0($s7)");
           }
-        } 
+        }
           if(emittedCode[i].id1.second->is_init == -5) reg1 = "$t6";
           else reg1 = getNextReg(emittedCode[i].id1);
-          addLine("move $a" + to_string(counter) + ", " + reg1);
+          if(counter < 4){
+            addLine("move $a" + to_string(counter) + ", " + reg1);
+          }
+          else{
+            int paramNum = 0;
+            int paramSize = 76;
+            char *a = "int";
+            paramSize += counter*getSize(a);
+
+            addLine("li $s6, " + to_string(paramSize));
+            addLine("sub $s7, $sp, $s6");
+            addLine("sw "+reg1+", 0($s7)");
+        }
           counter++;
         } else {
-          addLine("addi $a" + to_string(counter) + ",$0, " +
-                  emittedCode[i].id1.first);
+          if(counter < 4){
+            addLine("addi $a" + to_string(counter) + ",$0, " +
+                    emittedCode[i].id1.first);
+          }
+          else{
+            int paramNum = 0;
+            int paramSize = 76;
+            char *a = "int";
+            paramSize += counter*getSize(a);
+            addLine("addi $t9, $0, " +   emittedCode[i].id1.first);
+            addLine("li $s6, " + to_string(paramSize));
+            addLine("sub $s7, $sp, $s6");
+            addLine("sw $t9, 0($s7)");
+        }
           counter++;
         }
       }
@@ -164,7 +192,7 @@ void generateCode() {
         }
 
         if (emittedCode[i].res.second->is_init == -5) {
-         if(currFunction == "main"){ 
+         if(currFunction == "main"){
           addLine("li $s6, "+to_string(emittedCode[i].res.second->size) );
           addLine("sub $s7, $fp, $s6");
           addLine("lw $t8, 0($s7)");
@@ -194,7 +222,7 @@ void generateCode() {
            addLine("add $s7, $t7, $t8");
          }
           addLine("sw $t7, 0($s7)");
-         
+
         }
       }
 
@@ -415,7 +443,7 @@ void generateCode() {
         addLine("syscall");
         counter = 0;
       }
-     
+
       // printing one integer without newline
       else if (emittedCode[i].op.first == "CALL" &&
                emittedCode[i].id1.first == "printn") {
@@ -461,7 +489,7 @@ void generateCode() {
           loadArrayElement(emittedCode[i].id2, string("$t6"));
         }
         else reg1 = getNextReg(emittedCode[i].id2);
-        
+
         if(emittedCode[i].id1.second->is_init == -5 ){
            reg2 = string("$t7");
            loadArrayElement(emittedCode[i].id1, string("$t7"));
@@ -476,7 +504,7 @@ void generateCode() {
         if (emittedCode[i].id2.second == NULL) {
           addLine("addi $t9, $0, " + emittedCode[i].id2.first);
           reg1 = "$t9";
-        } 
+        }
         else if(emittedCode[i].id2.second->is_init == -5){
           reg1 = string("$t6");
           loadArrayElement(emittedCode[i].id2, string("$t6"));
@@ -501,7 +529,7 @@ void generateCode() {
         else if(emittedCode[i].id2.second->is_init == -5){
            reg1 = string("$t6");
            loadArrayElement(emittedCode[i].id2, string("$t6"));
-        } 
+        }
         else reg1 = getNextReg(emittedCode[i].id2);
 
         if(emittedCode[i].id1.second->is_init == -5){
