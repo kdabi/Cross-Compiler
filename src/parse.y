@@ -610,7 +610,8 @@ multiplicative_expression
 	    if($1->isInit==1 && $3->isInit==1) $$->isInit=1;
         }
         | multiplicative_expression '/' cast_expression       {
-            $$->iVal = $1->iVal/ $3->iVal;
+            if ($3->iVal != 0)
+                $$->iVal = $1->iVal/ $3->iVal;
             char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '/');
            if(a){int k;
                 if(!strcmp(a,"int")){
