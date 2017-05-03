@@ -114,7 +114,8 @@ constant
 				   char * a = constant($1->nType);
                                    $$->isInit=1;
                                    string as(a);
-				   $$->nodeType=as;
+				   $$->nodeType=as;        
+                                   $$->rVal = -5;
                                    $$->iVal = val;
                                    $$->exprType=5;
                                 //-----------3AC-------------------------//
@@ -563,8 +564,7 @@ cast_expression
 
 multiplicative_expression
         : cast_expression                                     {$$=$1;}
-        | multiplicative_expression '*' cast_expression       {
-            $$->iVal = $1->iVal * $3->iVal;
+        | multiplicative_expression '*' cast_expression       { 
             char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '*');
            if(a){
                int k;
@@ -1083,11 +1083,13 @@ N
 conditional_expression
   : logical_or_expression  { $$ = $1;}
   | M3 M  expression ':' N  conditional_expression  {
+
             $$ = nonTerminal2("conditional_expression", $1, $3, $6);
+            $$->rVal = -11;
             char* a = conditionalExpr($3->nodeType,$6->nodeType);
             if(a){
                  string as(a);
-                 $$->nodeType = as;
+                 $$->nodeType = string("int");
                  //--------------------3AC--------------------------//
                     qid t = getTmpSym($$->nodeType);
                     emit(pair<string, sEntry*>("=", lookup("=")), $6->place, pair<string, sEntry*>("", NULL), t, -1);
@@ -1096,6 +1098,7 @@ conditional_expression
                      backPatch($1->falselist , $5+1);
                      setId1($5-1 , $3->place);
                      setResult($5-1 , t);
+                     $$->nextlist = $3->nextlist;
                      $$->nextlist.push_back($5);
                      $$->nextlist.push_back(k);
                      $$->place = t;
@@ -1124,15 +1127,14 @@ assignment_expression
                          yyerror("Warning: Assignment with incompatible pointer type");
                          }
                       //-------------3AC------------------------------------//
-		     if(!strcmp($2,"=") || !strcmp($2,"+=") || !strcmp($2,"-=") || !strcmp($2,"*=") || !strcmp($2,"/="))assignmentExpression($2, $$->nodeType,$1->nodeType, $3->nodeType, $1->place, $3->place)	;
+                      int k;
+		     if(!strcmp($2,"=") || !strcmp($2,"+=") || !strcmp($2,"-=") || !strcmp($2,"*=") || !strcmp($2,"/=")) k= assignmentExpression($2, $$->nodeType,$1->nodeType, $3->nodeType, $1->place, $3->place)	;
 		     else assignment2($2, $$->nodeType,$1->nodeType, $3->nodeType, $1->place, $3->place);
                        $$->place = $1->place;
-                       $3->nextlist.merge($1->nextlist);
-                       $$->nextlist= $3->nextlist;
-                       $3->truelist.merge($1->truelist);
-                       $$->truelist= $3->truelist;
-                       $3->falselist.merge($1->falselist);
-                       $$->falselist= $3->falselist;
+
+                      backPatch($3->nextlist, k);
+                       
+                      
                      //-------------------------------------------------------//
                     }
                 else{ yyerror("Error: Incompatible types when assigning type \'%s\' to \'%s\' ",($1->nodeType).c_str(),($3->nodeType).c_str()); }

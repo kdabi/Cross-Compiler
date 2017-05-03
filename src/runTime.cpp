@@ -130,7 +130,7 @@ void loadArrayElement(qid temporary, string registerTmp){
       addLine("addi $s6, 76");
       addLine("sub $s7, $fp, $s6");
       addLine("lw $t8, 0($s7)");
-      addLine("add $s7, $t7, $t8");
+      addLine("sub $s7, $t8, $t7");
     }  
     addLine("lw "+ registerTmp +", 0($s7)");
 }

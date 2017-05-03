@@ -142,7 +142,7 @@ void generateCode() {
       }
 
       // for assignment operators
-      else if (emittedCode[i].op.first == "=") {
+      else if (emittedCode[i].op.first == "=" || emittedCode[i].op.first == "realtoint" || emittedCode[i].op.first == "inttoreal") {
         if (emittedCode[i].res.second == NULL)
           cout << "no sentry" << endl;
 
@@ -184,15 +184,16 @@ void generateCode() {
            addLine("addi $s6, 76");
            addLine("sub $s7, $fp, $s6");
            addLine("lw $t8, 0($s7)");
-           addLine("li $t7, 4");
-           addLine("mult $t8, $t7");
-           addLine("mflo $t7");
+           addLine("li $t6, 4");
+           addLine("mult $t8, $t6");
+           addLine("mflo $t6");
            addLine("li $s6, "+ to_string(emittedCode[i].res.second->offset));
            addLine("addi $s6, 76");
            addLine("sub $s7, $fp, $s6");
            addLine("lw $t8, 0($s7)");
-           addLine("add $s7, $t7, $t8");
+           addLine("sub $s7, $t8, $t6");     
          }
+
           addLine("sw $t7, 0($s7)");
          
         }
@@ -202,14 +203,22 @@ void generateCode() {
       else if (emittedCode[i].op.first == "&") {
         reg1 = getNextReg(emittedCode[i].res);
         int off = emittedCode[i].id1.second->offset;
-        if(emittedCode[i].id1.second->is_init == -5){
-          int indexTemp = emittedCode[i].id1.second->size;
-          off = off + indexTemp*4;
-        }
-        if (currFunction != "main")
-          off += 76;
         off = -off;
-        addLine("addi " + reg1 + ", $fp, " + to_string(off));
+        string u = to_string(off);
+        addLine("add " + reg1 + ", $fp, " + u);
+        if(emittedCode[i].id1.second->is_init == -5){
+           addLine("li $s6, "+to_string(emittedCode[i].id1.second->size) );
+           addLine("sub $s7, $fp, $s6");
+           addLine("lw $t8, 0($s7)");
+           addLine("li $t7, 4");
+           addLine("mult $t8, $t7");
+           addLine("mflo $t7");
+           addLine("addi $t7, "+to_string(off));
+           addLine("neg $t7, $t7");
+           u = string("$t7");
+           addLine("add "+reg1+", $fp, $t7");
+        }
+        
         saveOnJump();
       }
 

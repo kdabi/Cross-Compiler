@@ -31,7 +31,7 @@ int getNextIndex();
 void setResult(int a, qid p);
 void setId1(int a, qid p);
 void setListId1(list<int> li, qid p);
-void assignmentExpression(char *op, string type, string type1, string type3, qid place1, qid place3);
+int assignmentExpression(char *op, string type, string type1, string type3, qid place1, qid place3);
 void assignment2(char *op, string type, string type1, string type3, qid place1, qid place3);
 bool gotoIndexStorage (string id, int loc);
 void gotoIndexPatchListStorage (string id, int loc);

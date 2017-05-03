@@ -81,7 +81,7 @@ void setListId1(list<int> li, qid p){
 	return;
 }
 
-void assignmentExpression(char *o, string type, string type1, string type3, qid place1, qid place3){
+int assignmentExpression(char *o, string type, string type1, string type3, qid place1, qid place3){
 	qid t = place3;
         qid t2;
 	string op;
@@ -110,34 +110,35 @@ void assignmentExpression(char *o, string type, string type1, string type3, qid 
                 op1 = "-";
 		t = getTmpSym(type);
 	}
+  int k;
 	if(isInt(type1) && isInt(type3)){
 		op += "int";
-	        if(strcmp(o,"=")) emit(pair<string, sEntry*>(op, lookup(op1)), place1, place3, t, -1);
+	        if(strcmp(o,"=")) k= emit(pair<string, sEntry*>(op, lookup(op1)), place1, place3, t, -1);
 	}
 	else if(isFloat(type1) && isInt(type3)){
 		t2 = getTmpSym(type);
-		emit(pair<string, sEntry*>("inttoreal",NULL), place3,pair<string, sEntry*>("",NULL),t2,-1);
+		k = emit(pair<string, sEntry*>("inttoreal",NULL), place3,pair<string, sEntry*>("",NULL),t2,-1);
 		op += "real";
 		if(strcmp(o,"=")) emit(pair<string, sEntry*>(op, lookup(op1)), place1, t2, t, -1);
                 b=1;
 	}
 	else if(isFloat(type3) && isInt(type1)){
 		t2 = getTmpSym(type);
-		emit(pair<string, sEntry*>("realtoint",NULL),place3,pair<string, sEntry*>("",NULL),t2,-1);
+		k = emit(pair<string, sEntry*>("realtoint",NULL),place3,pair<string, sEntry*>("",NULL),t2,-1);
 		op += "int";
 		if(strcmp(o,"=")) emit(pair<string, sEntry*>(op, lookup(op1)), place1, t2, t, -1);
                  b=1;
 	}
 	else if(isFloat(type3) && isFloat(type1)){
 		op += "real";
-		if(strcmp(o,"=")) emit(pair<string, sEntry*>(op, lookup(op1)), place1, place3, t, -1);
+		if(strcmp(o,"=")) k=emit(pair<string, sEntry*>(op, lookup(op1)), place1, place3, t, -1);
 	}
 
 
-	if(!(a &&b )) emit(pair<string, sEntry*>("=", lookup("=")),  t, pair<string, sEntry*>("", NULL), place1, -1);
+	if(!(a &&b )) k= emit(pair<string, sEntry*>("=", lookup("=")),  t, pair<string, sEntry*>("", NULL), place1, -1);
 	else emit(pair<string, sEntry*>("=", lookup("=")),  t2, pair<string, sEntry*>("", NULL), place1, -1);
 
-return;
+return k;
 
 }
 void assignment2(char *o, string type, string type1, string type3, qid place1, qid place3){
