@@ -24,9 +24,7 @@ void addData(string a){
 }
 
 void printCode(){
-  cout<<"1"<<endl;
   codeFile.open("code.asm");
-  cout<<"12"<<endl;
   for(int m=0;m<dataSection.size();m++){
     codeFile << dataSection[m]<<endl;
   }
@@ -37,14 +35,9 @@ void printCode(){
   it = code.find("main");
   code.erase(it);
   for(auto it = code.begin(); it!=code.end(); ++it){
-    cout<<"a"<<endl;
-    cout<<it->first << endl;
     printCodeFunc(it->first);
-    cout<<"13"<<endl;
   }
-  cout<<"1"<<endl;
   //codeFile.close();
-  cout<<"1"<<endl;
 }
 
 void printCodeFunc(string a){
@@ -58,10 +51,8 @@ void printCodeFunc(string a){
 
 string getNextReg(qid temporary){
   //checking if the temporary is already in a register
-  cout<<"a1"<<endl;
   string r = checkTemporaryInReg(temporary.first);
-  if( r!=""){ r.erase(r.begin(), r.begin()+1); cout << "found you =========================================" << r << "==";return r; }
-    cout<<"a2"<<endl;
+  if( r!=""){ r.erase(r.begin(), r.begin()+1);return r; }
 
   //Check if we have a freeReg
   if(freeReg.size()) {
@@ -70,11 +61,9 @@ string getNextReg(qid temporary){
     freeReg.pop();
           
     int offset1 = temporary.second->offset;
-          cout<<"a2"<<endl;
 
     if(currFunction!="main") offset1 = offset1+76;
     r = t.first;
-      cout<<"a1"<<endl;
 
     // now we store value to the location in the stack
     addLine("li $s6, "+ to_string(offset1) );       // put the offset in s6
@@ -118,6 +107,33 @@ string getNextReg(qid temporary){
     reg[tmp] = temporary.first;
   }
 }
+void loadArrayElement(qid temporary, string registerTmp){
+    if(currFunction == "main") {
+      addLine("li $s6, "+to_string(temporary.second->size) );
+      addLine("sub $s7, $fp, $s6");
+      addLine("lw $t8, 0($s7)");
+      addLine("li $t7, 4");
+      addLine("mult $t8, $t7");
+      addLine("mflo $t7");
+      addLine("li $s6, " + to_string(temporary.second->offset)); // put the offset in s6
+      addLine("add $s6, $s6, $t7");
+      addLine("sub $s7, $fp, $s6"); // combine the two components of the
+    }else{
+      addLine("li $s6, "+to_string(temporary.second->size) );
+      addLine("addi $s6, 76");
+      addLine("sub $s7, $fp, $s6");
+      addLine("lw $t8, 0($s7)");
+      addLine("li $t7, 4");
+      addLine("mult $t8, $t7");
+      addLine("mflo $t7");
+      addLine("li $s6, "+ to_string(temporary.second->offset));
+      addLine("addi $s6, 76");
+      addLine("sub $s7, $fp, $s6");
+      addLine("lw $t8, 0($s7)");
+      addLine("add $s7, $t7, $t8");
+    }  
+    addLine("lw "+ registerTmp +", 0($s7)");
+}
 
 // flush all registers on jump
 void saveOnJump(){
@@ -157,9 +173,9 @@ void resetRegister(){
   pair<string, sEntry*> t3 = pair<string, sEntry*>("$t3", NULL);
   pair<string, sEntry*> t4 = pair<string, sEntry*>("$t4", NULL);
   pair<string, sEntry*> t5 = pair<string, sEntry*>("$t5", NULL);
-  pair<string, sEntry*> t6 = pair<string, sEntry*>("$t6", NULL);
-  pair<string, sEntry*> t7 = pair<string, sEntry*>("$t7", NULL);
-  pair<string, sEntry*> t8 = pair<string, sEntry*>("$t8", NULL);
+//  pair<string, sEntry*> t6 = pair<string, sEntry*>("$t6", NULL);
+// pair<string, sEntry*> t7 = pair<string, sEntry*>("$t7", NULL);
+//  pair<string, sEntry*> t8 = pair<string, sEntry*>("$t8", NULL);
 //  pair<string, sEntry*> t9 = pair<string, sEntry*>("$t9", NULL);
   pair<string, sEntry*> s0 = pair<string, sEntry*>("$s0", NULL);
   pair<string, sEntry*> s1 = pair<string, sEntry*>("$s1", NULL);
@@ -172,9 +188,9 @@ void resetRegister(){
   freeReg.push(t4);
   freeReg.push(t0);
   freeReg.push(t5);
-  freeReg.push(t6);
-  freeReg.push(t7);
-  freeReg.push(t8);
+//  freeReg.push(t6);
+//  freeReg.push(t7);
+//  freeReg.push(t8);
 //  freeReg.push(t9); for using in calculations
   freeReg.push(s0);
   freeReg.push(s1);
@@ -188,9 +204,9 @@ void resetRegister(){
   pair<string, string> _t3 = pair<string, string>("$t3", "");
   pair<string, string> _t4 = pair<string, string>("$t4", "");
   pair<string, string> _t5 = pair<string, string>("$t5", "");
-  pair<string, string> _t6 = pair<string, string>("$t6", "");
-  pair<string, string> _t7 = pair<string, string>("$t7", "");
-  pair<string, string> _t8 = pair<string, string>("$t8", "");
+//  pair<string, string> _t6 = pair<string, string>("$t6", "");
+//  pair<string, string> _t7 = pair<string, string>("$t7", "");
+//  pair<string, string> _t8 = pair<string, string>("$t8", "");
 //  pair<string, string> _t9 = pair<string, string>("$t9", "");
   pair<string, string> _s0 = pair<string, string>("$s0", "");
   pair<string, string> _s1 = pair<string, string>("$s1", "");
@@ -203,9 +219,9 @@ void resetRegister(){
   reg.insert(_t4);
   reg.insert(_t0);
   reg.insert(_t5);
-  reg.insert(_t6);
-  reg.insert(_t7);
-  reg.insert(_t8);
+//  reg.insert(_t6);
+//  reg.insert(_t7);
+//  reg.insert(_t8);
 //  reg.insert(_t9);
   reg.insert(_s0);
   reg.insert(_s1);

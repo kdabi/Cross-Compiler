@@ -1,0 +1,11 @@
+#!/bin/bash
+
+SCRIPT=`realpath $0`
+SCRIPTPATH=`dirname $SCRIPT`
+name=$(basename $1)
+tempfile1=$(mktemp /tmp/XXXXXX.$name)
+tempfile2=$(mktemp /tmp/XXXXXX.$name)
+cpp $1 > $tempfile1
+sed '/^#/ d' < $tempfile1 > $tempfile2
+$SCRIPTPATH/compiler -i $tempfile2
+rm -f $tempfile1 $tempfile2

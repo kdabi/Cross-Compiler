@@ -10,9 +10,13 @@ OBJ=$(BUILD)/nodes.o     \
 		$(BUILD)/codeGen.o   \
 		$(BUILD)/runTime.o
 
-all: $(BIN)/lexer
+all: $(BIN)/compile
 
-$(BIN)/lexer: $(BUILD)/parse.tab.c $(BUILD)/lex.yy.c $(OBJ)
+$(BIN)/compile: $(SOURCE)/compile $(BIN)/compiler
+	@mkdir -p $(BIN)
+	cp $< $@
+
+$(BIN)/compiler: $(BUILD)/parse.tab.c $(BUILD)/lex.yy.c $(OBJ)
 	@mkdir -p $(BIN)
 	$(CC) $^ -o $@ -I$(BUILD) -I$(SOURCE)
 
@@ -33,4 +37,4 @@ $(BUILD)/%.o: $(SOURCE)/%.cpp
 
 clean : 
 	rm -rf $(BIN)  $(BUILD)
-	rm -f *.csv *.asm *.txt
+	rm -f *.csv *.asm *.txt *.gv

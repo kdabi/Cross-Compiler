@@ -185,11 +185,15 @@ generic_association
 							$$->nodeType =as;
                                                 //---------------3AC-------------------------------//
                                                  $$->place = getTmpSym($$->nodeType);
-                                                 qid opT  = pair<string,sEntry*>("[]",NULL);
-                                                 int k = emit(opT, $1->place, $3->place, $$->place, -1);
+                                                 //qid opT  = pair<string,sEntry*>("[]",NULL);
+                                                 // int k = emit(opT, $1->place, $3->place, $$->place, -1);
+                                                 $$->place.second->size = $3->place.second->offset;
+                                                 $$->place.second->offset = $1->place.second->offset;
+                                                 $$->place.second->is_init = -5;
+
                                                  $$->nextlist = {};
-                                                 backPatch($3->truelist, k);
-                                                 backPatch($3->falselist, k);
+                                                 //backPatch($3->truelist, k);
+                                                 //backPatch($3->falselist, k);
                                                //----------------3AC------------------------------------//
 						 }
 						else {
@@ -318,6 +322,7 @@ generic_association
 	  if(s){
 		  string as(s);
 		  $$->nodeType =as;
+      $$->iVal = $1->iVal +1;
                   //------------------3AC------------//
                   qid t1 = getTmpSym($$->nodeType);
                   int k=  emit(pair<string, sEntry*>("++S", lookup("++")), $1->place, pair<string, sEntry*>("", NULL), t1, -1);
@@ -337,6 +342,7 @@ generic_association
 	  if(s){
 		  string as(s);
 		  $$->nodeType =as;
+      $$->iVal = $1->iVal -1;
                   //-----------------3AC-------------//
                   qid t1 = getTmpSym($$->nodeType);
                   int k=emit(pair<string, sEntry*>("--S", lookup("--")), $1->place, pair<string, sEntry*>("", NULL), t1, -1);
@@ -432,6 +438,7 @@ unary_expression
 	  if(s){
 		  string as(s);
 		  $$->nodeType =as;
+      $$->iVal = $2->iVal +1;
                   //===========3AC======================//
                   qid t1 = getTmpSym($$->nodeType);
                   int k = emit(pair<string, sEntry*>("++P", lookup("++")), $2->place, pair<string, sEntry*>("", NULL), t1, -1);
@@ -448,6 +455,7 @@ unary_expression
   }
 
   | DEC_OP unary_expression       {
+          $$->iVal =$2->iVal -1;
        	  $$=  nonTerminal($1, NULL,NULL, $2);
 	  if($2->isInit == 1 ) $$->isInit=1;
 	  char* s = postfixExpr($2->nodeType, 7);
@@ -468,6 +476,7 @@ unary_expression
 
   }
   | unary_operator cast_expression {
+    $$->iVal = $2->iVal;
 		$$ = nonTerminal("unary_expression", NULL, $1, $2);
 		if( $2->isInit==1) $$->isInit=1;
 		char* a= unaryExpr($1->name, $2->nodeType, 1);
@@ -555,6 +564,7 @@ cast_expression
 multiplicative_expression
         : cast_expression                                     {$$=$1;}
         | multiplicative_expression '*' cast_expression       {
+            $$->iVal = $1->iVal * $3->iVal;
             char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '*');
            if(a){
                int k;
@@ -600,6 +610,7 @@ multiplicative_expression
 	    if($1->isInit==1 && $3->isInit==1) $$->isInit=1;
         }
         | multiplicative_expression '/' cast_expression       {
+            $$->iVal = $1->iVal/ $3->iVal;
             char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '/');
            if(a){int k;
                 if(!strcmp(a,"int")){
@@ -643,6 +654,7 @@ multiplicative_expression
 	    if($1->isInit==1 && $3->isInit==1) $$->isInit=1;
 }
         | multiplicative_expression '%' cast_expression       {
+            $$->iVal = $1->iVal % $3->iVal;
             $$=nonTerminal("%",NULL,$1,$3);
             char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '/');
             if(!strcmp(a,"int")){
@@ -665,6 +677,7 @@ multiplicative_expression
 additive_expression
         : multiplicative_expression                           {$$=$1;}
         | additive_expression '+' multiplicative_expression   {
+                $$->iVal = $1->iVal + $3->iVal;
                 char *a = additiveExpr($1->nodeType,$3->nodeType,'+');
                  char *q=new char();
                  string p;
@@ -703,6 +716,7 @@ additive_expression
 
                  }
         | additive_expression '-' multiplicative_expression   {
+                 $$->iVal = $1->iVal - $3->iVal;
                  char *a = additiveExpr($1->nodeType,$3->nodeType,'-');
 		 char *q = new char();
                  string p;
@@ -786,7 +800,8 @@ relational_expression
   | relational_expression '<' shift_expression
       {                $$ = nonTerminal("<", NULL, $1, $3);
                     char* a=relationalExpr($1->nodeType,$3->nodeType,"<");
-                 if(a) {
+                 if(a) { 
+
                          if(!strcmp(a,"bool")) $$->nodeType = string("bool");
                         else if(!strcmp(a,"Bool")){
                         $$->nodeType = string("bool");
@@ -1100,6 +1115,7 @@ assignment_expression
   : conditional_expression  { $$ = $1;}
   | unary_expression assignment_operator assignment_expression
              { $$ = nonTerminal2($2, $1,NULL, $3);
+               
                char* a = assignmentExpr($1->nodeType,$3->nodeType,$2);
                if(a){
                     if(!strcmp(a,"true")){ $$->nodeType = $1->nodeType;
@@ -2263,7 +2279,6 @@ function_definition
          {      typeName=string("");
                 string s($3);
                 string u = s+string(".csv");
-                cout<< "im "<<u << endl;
                 printSymTables(curr,u);
                 symNumber=0;
                updateSymTable(s);
@@ -2276,7 +2291,6 @@ function_definition
 	| declaration_specifiers declarator E2 compound_statement  {
               typeName=string("");
               string s($3);string u =s+string(".csv");
-              cout<< "im "<<u << endl;
               printSymTables(curr,u);
               symNumber=0;
               updateSymTable(s);
@@ -2384,16 +2398,11 @@ int main(int argc,char **argv){
 graphEnd();
   display3ac();
   resetRegister();
-  cout<<"go in generate code"<<endl;
   generateCode();
-  cout<<"go in print code"<<endl;
   printCode();
-  cout<<"done code"<<endl;
   symFileName = "GST.csv";
   printSymTables(curr,symFileName);
-  cout<<"done code"<<endl;
   printFuncArguments();
-  cout<<"done code"<<endl;
   return 0;
 }
 void yyerror(char *s,...){

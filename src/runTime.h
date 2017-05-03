@@ -19,3 +19,4 @@ string getNextReg(qid temporary);
 string checkTemporaryInReg(string t);
 void addData(string a);
 void saveOnJump();
+void loadArrayElement(qid temporary, string registerTmp);
