@@ -91,7 +91,7 @@ WS  [ \t\v\n\f]
                                         return I_CONSTANT;}
 {NZ}{D}*{IS}?                           {sscanf(yytext,"%lld",&yylval.num->iVal);get_int_info(); yylval.num->str = strdup(yytext);return I_CONSTANT;}
 "0"{O}*{IS}?                            {sscanf(yytext,"%lld",&yylval.num->iVal);get_int_info(); yylval.num->str = strdup(yytext); return I_CONSTANT;}
-{CP}?"'"([^'\\\n]|{ES})+"'"             {get_int_info(); return I_CONSTANT;}
+{CP}?"'"([^'\\\n]|{ES})+"'"             {get_int_info(); yylval.num->str = strdup(yytext); ;return I_CONSTANT;}
 
 {D}+{E}{FS}?                            {yylval.num->str = strdup(yytext);get_real_info(); return F_CONSTANT;}
 {D}*"."{D}+{E}?{FS}?                    {yylval.num->str = strdup(yytext);get_real_info(); return F_CONSTANT;}
