@@ -10,14 +10,18 @@ void generateCode() {
   currFunction = "main";
   addLine("");
   //    cout << "Inside generateCode" << endl;
+  int unconditionalgoto = 0;
   for (int i = 0; i < emittedCode.size(); ++i) {
     addLine("# " + to_string(i + 1) + " : " + emittedCode[i].res.first + " = " +
             emittedCode[i].id1.first + " " + emittedCode[i].op.first + " " +
             emittedCode[i].id2.first);
+    if(emittedCode[i].op.first=="GOTO") unconditionalgoto = 0;
     if (gotoLabels.find(i) != gotoLabels.end()) {
       saveOnJump();
       addLine(gotoLabels[i] + ":");
+      if(unconditionalgoto == 1) unconditionalgoto = 0;
     }
+    if(unconditionalgoto) continue;
     if (emittedCode[i].stmtNum == -2) {
       // this is a function
       // cout << "Inside generateCode function" << endl;
@@ -219,7 +223,7 @@ void generateCode() {
            addLine("addi $s6, 76");
            addLine("sub $s7, $fp, $s6");
            addLine("lw $t8, 0($s7)");
-           addLine("sub $s7, $t8, $t6");     
+           addLine("sub $s7, $t8, $t6");
          }
 
           addLine("sw $t7, 0($s7)");
@@ -246,7 +250,7 @@ void generateCode() {
            u = string("$t7");
            addLine("add "+reg1+", $fp, $t7");
         }
-        
+
         saveOnJump();
       }
 
@@ -471,9 +475,9 @@ void generateCode() {
       else if( emittedCode[i].op.first == "CALL" && emittedCode[i].id1.first == "openFileRead"){
         // string is already in a0
         addLine("li $v0, 13");//syscall 13 - open file
-        addLine("li $a1, 0"); //set to read mode 
-        addLine("li $a2, 0");// 
-        addLine("syscall"); // 
+        addLine("li $a1, 0"); //set to read mode
+        addLine("li $a2, 0");//
+        addLine("syscall"); //
         addLine("move $s0, $v0"); //saves filedescriptor
         counter = 0;
       }
@@ -488,9 +492,9 @@ void generateCode() {
         addLine("li $v0, 4");
         addLine("syscall");
 
-        
+
       }
-      
+
       // implementing '<'
       else if (emittedCode[i].op.first == "<") {
         if (emittedCode[i].id2.second == NULL) {
@@ -695,5 +699,7 @@ void generateCode() {
     }
 
     saveOnJump();// allocating
+    if(emittedCode[i].op.first == "GOTO" && emittedCode[i].id1.first=="")
+      unconditionalgoto = 1;
   }
 }
