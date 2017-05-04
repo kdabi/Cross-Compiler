@@ -99,6 +99,8 @@ void stInitialize(){
     funcArgumentMap.insert(pair<string,string>(string("prints"),string("char*")));
     funcArgumentMap.insert(pair<string,string>(string("scanf"),string("")));
     funcArgumentMap.insert(pair<string,string>(string("strlen"),string("void*")));
+    funcArgumentMap.insert(pair<string,string>(string("fileOpenRead"),string("char*")));
+    funcArgumentMap.insert(pair<string,string>(string("readFile"),string("int")));
 
 }
 void paramTable(){
@@ -411,5 +413,8 @@ void addKeywords(){
   insertSymbol(*curr,"prints","FUNC_void",8,0,1); //
   insertSymbol(*curr,"strlen","FUNC_int",8,0,1); //
   insertSymbol(*curr,"printn","FUNC_void",8,0,1); //
+  insertSymbol(*curr,"fileOpenRead","FUNC_int",8,0,1);
+  insertSymbol(*curr,"readFile","FUNC_int",8,0,1);
+
 
 }

@@ -195,6 +195,8 @@ void display3ac(){
 
 
 void display(quad q, int i){
+      int k;
+
 	if(q.stmtNum==-1 || q.stmtNum == -4){
 		intermediateCodeFile << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
 			setw(15) << q.id1.first << " " <<
@@ -207,10 +209,16 @@ void display(quad q, int i){
 	}
 
 	else{
-    if( gotoLabels.find(q.stmtNum)== gotoLabels.end()) gotoLabels.insert(pair<int, string>(q.stmtNum, "Label"+to_string(q.stmtNum)));
+        k = q.stmtNum;
+      while(emittedCode[k].op.first == "GOTO" && emittedCode[k].id1.first == ""){
+          k = emittedCode[k].stmtNum;
+      } 
+      
+      if(gotoLabels.find(k)== gotoLabels.end()) gotoLabels.insert(pair<int, string>(k, "Label"+to_string(k)));
 		intermediateCodeFile << setw(5) << "[" << i << "]" << ": " << setw(15) << q.op.first << " " <<
 			setw(15) << q.id1.first << " " <<
 			setw(15) << q.id2.first << " " <<
-			setw(15) << q.stmtNum << "---" << '\n';
+			setw(15) << k << "---" << '\n';
+      emittedCode[i].stmtNum = k;
 	}
 }

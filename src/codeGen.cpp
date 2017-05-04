@@ -374,7 +374,7 @@ void generateCode() {
           }
         }
         if (emittedCode[i].id2.second != NULL) {
-          if(emittedCode[i].id2.second->is_init == -5) reg3 = string("t7");
+          if(emittedCode[i].id2.second->is_init == -5) reg3 = string("$t7");
           else reg3 = getNextReg(emittedCode[i].id2);
           if (emittedCode[i].id2.second != NULL) {
           if (emittedCode[i].id2.second->is_init == -5) {
@@ -468,6 +468,29 @@ void generateCode() {
         addLine("syscall");
         counter = 0;
       }
+      else if( emittedCode[i].op.first == "CALL" && emittedCode[i].id1.first == "openFileRead"){
+        // string is already in a0
+        addLine("li $v0, 13");//syscall 13 - open file
+        addLine("li $a1, 0"); //set to read mode 
+        addLine("li $a2, 0");// 
+        addLine("syscall"); // 
+        addLine("move $s0, $v0"); //saves filedescriptor
+        counter = 0;
+      }
+      else if(emittedCode[i].op.first == "CALL" && emittedCode[i].id1.first == "readFile"){
+        addLine("li $v0, 14"); // syscall 14- read file
+        //file descriptor in $a0
+        addLine("la $a1, buffer"); //stores read into buffer
+
+        addLine("li $a2, 1024");// hardcoded size of buffer
+        addLine("syscall");
+        addLine("mov $a0, $a1");
+        addLine("li $v0, 4");
+        addLine("syscall");
+
+        
+      }
+      
       // implementing '<'
       else if (emittedCode[i].op.first == "<") {
         if (emittedCode[i].id2.second == NULL) {
