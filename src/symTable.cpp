@@ -416,5 +416,4 @@ void addKeywords(){
   insertSymbol(*curr,"fileOpenRead","FUNC_int",8,0,1);
   insertSymbol(*curr,"readFile","FUNC_int",8,0,1);
 
-
 }

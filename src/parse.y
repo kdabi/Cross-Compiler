@@ -33,6 +33,8 @@ int structCounter=0;
 string funcArguments;
 string currArguments;
 qid tempQid;
+int tempodd;
+int tempeven;
 %}
 
 
@@ -655,7 +657,7 @@ multiplicative_expression
 	    if($1->isInit==1 && $3->isInit==1) $$->isInit=1;
 }
         | multiplicative_expression '%' cast_expression       {
-            $$->iVal = $1->iVal % $3->iVal;
+           if($3->iVal != 0) $$->iVal = $1->iVal % $3->iVal;
             $$=nonTerminal("%",NULL,$1,$3);
             char* a=multilplicativeExpr($1->nodeType, $3->nodeType, '/');
             if(!strcmp(a,"int")){
@@ -1676,8 +1678,14 @@ direct_declarator
                         //------------------3AC---------------------------------//
                         $$->place = pair<string, sEntry*>($$->nodeKey, NULL);
                         backPatch($4->nextlist, $6);
-                        string em =  "func " + $$->nodeKey+ " begin:";
-                        emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-2);
+                        if( !(($$->nodeKey == "odd" && tempodd == 0) || ($$->nodeKey == "even" && tempeven == 0)) ){string em =  "func " + $$->nodeKey+ " begin:";
+                        emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-2);}
+                        if($$->nodeKey == "odd" ){
+                           tempodd = 1;
+                        }
+                        if($$->nodeKey == "even" ){
+                           tempeven = 1;
+                        }
                         //-------------------------------------------------------//
                }
 	| direct_declarator '(' E3 ')'
@@ -2006,7 +2014,7 @@ labeled_statement
         ;
 
 compound_statement
-	: '{' '}'   {isFunc=0;$$ = terminal("{ }");}
+	: '{' '}'   {isFunc=0;$$ = terminal("{ }"); $$->rVal = -5;}
 	| E1  block_item_list '}'  {if(blockSym){ string s($1);
                                     s=s+string(".csv");
                                     string u($1);
@@ -2287,8 +2295,8 @@ function_definition
                updateSymTable(s);
                 $$ = nonTerminalFourChild("function_definition", $1, $2, $4, $5, NULL);
                //--------------------3AC--------------------------------//
-                        string em =  "func end";
-                        emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-3);
+                        if($5->rVal != -5){ string em =  "func end";
+                        emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-3);}
                //------------------------------------------------------//
          }
 	| declaration_specifiers declarator E2 compound_statement  {
@@ -2299,8 +2307,8 @@ function_definition
               updateSymTable(s);
               $$ = nonTerminal2("function_definition", $1, $2, $4);
                //--------------------3AC--------------------------------//
-                string em =  "func end";
-                emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-3);
+                if($4->rVal != -5){string em =  "func end";
+                emit(pair<string , sEntry*>(em, NULL), pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),pair<string , sEntry*>("", NULL),-3); }
                //------------------------------------------------------//
              }
 	;
@@ -2342,6 +2350,8 @@ int main(int argc,char **argv){
     helpMessage();
     return 0;
   }
+  tempodd =0;
+  tempeven =0; 
   yyin=NULL;
   int fileflag = 0;
   // command line options

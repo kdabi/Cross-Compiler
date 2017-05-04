@@ -2,14 +2,14 @@ int absolute(int x){
  if(x < 0) return -x;
  return x;
 }
-
-int even(int number);   
-int odd(int number);
+int odd(int number){}
+int even(int number){}
 
 int main() {
   int T; 
   T = scanf();
-  while (T--) {
+  while (T) {
+    T = T-1;
     int n; 
     n = scanf();
     prints("odd: ");
